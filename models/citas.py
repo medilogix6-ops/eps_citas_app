@@ -44,11 +44,11 @@ def obtener_medicos_por_tipo(tipo_cita):
         conn.close()
 
 
-def obtener_fechas_disponibles(medico_id, tipo_cita, dias=30):
+def obtener_fechas_disponibles(medico_id, dias=30):
     """Obtener fechas disponibles (máx 3 pacientes por día) para un médico"""
-    conn = get_connection()
-    cur  = conn.cursor(dictionary=True)
     try:
+        conn = get_connection()
+        cur  = conn.cursor(dictionary=True)
         fechas_disponibles = []
         hoy = datetime.now().date()
         
@@ -70,10 +70,12 @@ def obtener_fechas_disponibles(medico_id, tipo_cita, dias=30):
                     'disponibles': 3 - count
                 })
         
-        return fechas_disponibles
-    finally:
         cur.close()
         conn.close()
+        return fechas_disponibles
+    except Exception as e:
+        print(f"Error en obtener_fechas_disponibles: {e}")
+        return []
 
 
 def obtener_citas_paciente(documento):

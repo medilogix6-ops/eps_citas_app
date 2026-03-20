@@ -139,15 +139,23 @@ def perfil_paciente():
 @login_required
 def api_medicos_por_tipo(tipo_cita):
     """Obtener médicos disponibles para un tipo de cita"""
-    medicos = obtener_medicos_por_tipo(tipo_cita)
-    return jsonify(medicos)
+    try:
+        medicos = obtener_medicos_por_tipo(tipo_cita)
+        return jsonify([dict(m) if hasattr(m, 'keys') else m for m in (medicos or [])])
+    except Exception as e:
+        print(f"Error en api_medicos_por_tipo: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/fechas-disponibles/<int:medico_id>')
 @login_required
 def api_fechas_disponibles(medico_id):
     """Obtener fechas disponibles para un médico (máx 3 pacientes por día)"""
-    fechas = obtener_fechas_disponibles(medico_id)
-    return jsonify({'fechas': fechas})
+    try:
+        fechas = obtener_fechas_disponibles(medico_id)
+        return jsonify({'fechas': fechas or []})
+    except Exception as e:
+        print(f"Error en api_fechas_disponibles: {e}")
+        return jsonify({'error': str(e), 'fechas': []}), 500
 
 # ──────────────────────────────────────────────
 #  DASHBOARD
@@ -271,7 +279,7 @@ def consulta_cita():
     documento = ''
     if request.method == 'POST':
         documento = request.form.get('documento','').strip()
-        citas     = consultar_citas_paciente(documento)
+        citas     = obtener_citas_paciente(documento)
         if not citas:
             flash('No se encontraron citas para ese documento.', 'error')
     return render_template('consulta_cita.html', citas=citas, documento=documento)
