@@ -16,9 +16,11 @@ from models.usuarios  import (
 )
 from models.pacientes import registrar_paciente, existe_paciente, obtener_todos, actualizar_paciente
 from models.medicos   import listar_medicos, agregar_medico, eliminar_medico
-from models.citas     import (reservar_cita, consultar_citas_paciente,
+from models.citas     import (reservar_cita, obtener_citas_paciente,
                               obtener_todas_citas, obtener_cita_por_id,
-                              actualizar_cita, eliminar_cita, estadisticas)
+                              actualizar_cita, eliminar_cita, estadisticas,
+                              obtener_medicos_por_tipo, obtener_fechas_disponibles,
+                              obtener_info_paciente)
 
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
@@ -74,7 +76,27 @@ def login_view():
         if user:
             session['user_id'] = user['id']
             session['username'] = user['username']
+            session['correo'] = user.get('correo', '')
             session['rol'] = user['rol']
+            
+            # Si es paciente, buscar su documento
+            if user['rol'] == 'Paciente':
+                from database import get_connection
+                conn = get_connection()
+                cur = conn.cursor(dictionary=True)
+                try:
+                    # Buscar paciente por correo
+                    cur.execute(
+                        "SELECT documento FROM pacientes WHERE correo = %s LIMIT 1",
+                        (user.get('correo'),)
+                    )
+                    resultado = cur.fetchone()
+                    if resultado:
+                        session['documento_paciente'] = resultado['documento']
+                finally:
+                    cur.close()
+                    conn.close()
+            
             flash(f'Bienvenido, {user["username"]} 👋', 'success')
             return redirect(url_for('dashboard'))
         flash('Usuario o contraseña incorrectos.', 'error')
@@ -85,6 +107,47 @@ def logout():
     session.clear()
     flash('Sesión cerrada correctamente.', 'success')
     return redirect(url_for('login_view'))
+
+# ──────────────────────────────────────────────
+#  PERFIL DEL PACIENTE
+# ──────────────────────────────────────────────
+@app.route('/perfil')
+@login_required
+def perfil_paciente():
+    """Perfil del paciente con su información y citas"""
+    doc = session.get('documento_paciente')
+    if not doc and session.get('rol') == 'Administrador':
+        flash('Esta página es solo para pacientes.', 'error')
+        return redirect(url_for('dashboard'))
+    if not doc:
+        flash('No hay información del paciente en tu cuenta.', 'error')
+        return redirect(url_for('index'))
+    
+    paciente = obtener_info_paciente(doc)
+    citas = obtener_citas_paciente(doc) if paciente else []
+    
+    if not paciente:
+        flash('Paciente no encontrado.', 'error')
+        return redirect(url_for('index'))
+    
+    return render_template('perfil_paciente.html', paciente=paciente, citas=citas)
+
+# ──────────────────────────────────────────────
+#  API ENDPOINTS (para AJAX)
+# ──────────────────────────────────────────────
+@app.route('/api/medicos-por-tipo/<tipo_cita>')
+@login_required
+def api_medicos_por_tipo(tipo_cita):
+    """Obtener médicos disponibles para un tipo de cita"""
+    medicos = obtener_medicos_por_tipo(tipo_cita)
+    return jsonify(medicos)
+
+@app.route('/api/fechas-disponibles/<int:medico_id>')
+@login_required
+def api_fechas_disponibles(medico_id):
+    """Obtener fechas disponibles para un médico (máx 3 pacientes por día)"""
+    fechas = obtener_fechas_disponibles(medico_id)
+    return jsonify({'fechas': fechas})
 
 # ──────────────────────────────────────────────
 #  DASHBOARD
@@ -184,24 +247,22 @@ def todas_citas():
 @app.route('/citas/reservar', methods=['GET', 'POST'])
 @login_required
 def reservar():
-    medicos = listar_medicos()
+    pac_doc = session.get('documento_paciente')
+    
     if request.method == 'POST':
-        doc   = request.form.get('documento','').strip()
         mid   = request.form.get('medico_id','').strip()
         tipo  = request.form.get('tipo_cita','').strip()
         fecha = request.form.get('fecha','').strip()
-        hora  = request.form.get('hora','').strip()
-        dir_  = request.form.get('direccion_eps','').strip()
-        if not existe_paciente(doc):
-            flash('No existe un paciente con ese documento. Regístrelo primero.', 'error')
-        elif not all([mid, tipo, fecha, hora, dir_]):
-            flash('Todos los campos son obligatorios.', 'error')
+        
+        if not all([mid, tipo, fecha, pac_doc]):
+            flash('Faltan datos requeridos.', 'error')
         else:
-            ok, msg = reservar_cita(doc, mid, tipo, fecha, hora, dir_)
+            ok, msg = reservar_cita(pac_doc, mid, tipo, fecha)
             flash(msg, 'success' if ok else 'error')
             if ok:
-                return redirect(url_for('consulta_cita'))
-    return render_template('reservar_cita.html', medicos=medicos)
+                return redirect(url_for('perfil_paciente'))
+    
+    return render_template('reservar_cita.html')
 
 @app.route('/citas/consulta', methods=['GET', 'POST'])
 @login_required

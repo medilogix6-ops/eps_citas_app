@@ -2,57 +2,252 @@
 {% block title %}Reservar Cita{% endblock %}
 {% block page_title %}📅 Reservar Cita{% endblock %}
 {% block topbar_actions %}
-  <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">← Volver</a>
+  <a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">← Volver</a>
 {% endblock %}
 
 {% block content %}
 <div style="max-width:640px;">
   <div class="card">
     <h2 class="card-title">📅 Nueva Cita Médica</h2>
-    <form method="POST">
+    <form id="formReserva" method="POST">
       <div class="form-grid">
-        <div class="form-group full">
-          <label>Documento del Paciente *</label>
-          <input type="text" name="documento" placeholder="Ingrese el número de identificación" required maxlength="15"/>
-          <small style="color:var(--gray);font-size:.78rem;">El paciente debe estar registrado previamente.</small>
-        </div>
-        <div class="form-group full">
-          <label>Médico Asignado *</label>
-          <select name="medico_id" required>
-            <option value="">— Seleccione médico —</option>
-            {% for m in medicos %}
-              <option value="{{ m.id }}">{{ m.nombre }} — {{ m.especialidad }}</option>
-            {% endfor %}
-          </select>
-        </div>
+        <!-- Paso 1: Tipo de Cita -->
         <div class="form-group full">
           <label>Tipo de Cita *</label>
-          <select name="tipo_cita" required>
-            <option value="">— Seleccione tipo —</option>
+          <select name="tipo_cita" id="tipoCita" required onchange="cargarMedicos()">
+            <option value="">— Seleccione tipo de cita —</option>
             <option value="General">Medicina General</option>
             <option value="Odontología">Odontología</option>
             <option value="Especialista">Especialista</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Fecha *</label>
-          <input type="date" name="fecha" required/>
+
+        <!-- Paso 2: Médico (aparece después de elegir tipo) -->
+        <div class="form-group full" id="containerMedico" style="display:none;">
+          <label>Médico Disponible *</label>
+          <select name="medico_id" id="medico" required onchange="cargarFechas()">
+            <option value="">— Seleccione médico —</option>
+          </select>
+          <small style="color:var(--gray);font-size:.78rem;" id="infoMedico"></small>
         </div>
-        <div class="form-group">
-          <label>Hora *</label>
-          <input type="time" name="hora" required/>
+
+        <!-- Paso 3: Fecha (aparece después de elegir médico) -->
+        <div class="form-group full" id="containerFecha" style="display:none;">
+          <label>Fecha Disponible *</label>
+          <select name="fecha" id="fecha" required>
+            <option value="">— Seleccione fecha —</option>
+          </select>
+          <small style="color:var(--gray);font-size:.78rem;" id="infoFecha"></small>
         </div>
-        <div class="form-group full">
-          <label>Dirección de la EPS *</label>
-          <input type="text" name="direccion_eps" placeholder="Ej: Cra 7 # 32-16, Bogotá" required/>
+
+        <!-- Información de confirmación -->
+        <div class="form-group full" id="containerConfirm" style="display:none;background:var(--bg-light);padding:1rem;border-radius:6px;border-left:3px solid var(--primary);">
+          <p><strong>📋 Resumen de tu cita:</strong></p>
+          <p id="resumenCita"></p>
         </div>
       </div>
+
       <div class="form-actions">
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancelar</a>
-        <button type="submit" class="btn btn-primary">📅 Confirmar Cita</button>
+        <button type="button" onclick="window.history.back();" class="btn btn-secondary">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnConfirmar" style="display:none;">📅 Confirmar Cita</button>
       </div>
     </form>
   </div>
 </div>
-<script>document.querySelector('input[name="fecha"]').min=new Date().toISOString().split('T')[0];</script>
+
+<script>
+const documento = "{{ session.username }}"; // Usar el documento del usuario
+
+async function cargarMedicos() {
+  const tipoCita = document.getElementById('tipoCita').value;
+  if (!tipoCita) {
+    document.getElementById('containerMedico').style.display = 'none';
+    document.getElementById('containerFecha').style.display = 'none';
+    document.getElementById('containerConfirm').style.display = 'none';
+    document.getElementById('btnConfirmar').style.display = 'none';
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/medicos-por-tipo/${tipoCita}`);
+    const medicos = await response.json();
+    
+    const selectMedico = document.getElementById('medico');
+    selectMedico.innerHTML = '<option value="">— Seleccione médico —</option>';
+    
+    if (medicos.length === 0) {
+      selectMedico.innerHTML += '<option disabled>No hay médicos disponibles</option>';
+      document.getElementById('containerMedico').style.display = 'block';
+    } else {
+      medicos.forEach(m => {
+        const option = document.createElement('option');
+        option.value = m.id;
+        option.textContent = `${m.nombre} — ${m.especialidad}`;
+        selectMedico.appendChild(option);
+      });
+      document.getElementById('containerMedico').style.display = 'block';
+    }
+    
+    document.getElementById('containerFecha').style.display = 'none';
+    document.getElementById('containerConfirm').style.display = 'none';
+    document.getElementById('btnConfirmar').style.display = 'none';
+  } catch (error) {
+    console.error('Error cargando médicos:', error);
+    alert('Error al cargar los médicos');
+  }
+}
+
+async function cargarFechas() {
+  const medicoId = document.getElementById('medico').value;
+  const tipoCita = document.getElementById('tipoCita').value;
+  
+  if (!medicoId) {
+    document.getElementById('containerFecha').style.display = 'none';
+    document.getElementById('containerConfirm').style.display = 'none';
+    document.getElementById('btnConfirmar').style.display = 'none';
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/fechas-disponibles/${medicoId}`);
+    const datos = await response.json();
+    
+    const selectFecha = document.getElementById('fecha');
+    selectFecha.innerHTML = '<option value="">— Seleccione fecha —</option>';
+    
+    if (datos.fechas.length === 0) {
+      selectFecha.innerHTML += '<option disabled>No hay fechas disponibles</option>';
+      document.getElementById('infoFecha').textContent = 'El médico no tiene disponibilidad en los próximos 30 días.';
+    } else {
+      datos.fechas.forEach(f => {
+        const fecha = new Date(f.fecha);
+        const opción = fecha.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const option = document.createElement('option');
+        option.value = f.fecha;
+        option.textContent = `${opción} (${f.disponibles} ${f.disponibles === 1 ? 'lugar' : 'lugares'})`;
+        selectFecha.appendChild(option);
+      });
+      document.getElementById('infoFecha').textContent = 'Elige una fecha disponible';
+    }
+    
+    document.getElementById('containerFecha').style.display = 'block';
+    actualizarResumen();
+  } catch (error) {
+    console.error('Error cargando fechas:', error);
+    alert('Error al cargar las fechas disponibles');
+  }
+}
+
+function actualizarResumen() {
+  const tipoCita = document.getElementById('tipoCita').value;
+  const medicoSelect = document.getElementById('medico');
+  const medicoNombre = medicoSelect.options[medicoSelect.selectedIndex].textContent;
+  const fechaSelect = document.getElementById('fecha');
+  const fecha = fechaSelect.value;
+
+  if (tipoCita && medicoNombre && fecha) {
+    const fechaObj = new Date(fecha);
+    const fechaFormato = fechaObj.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    
+    document.getElementById('resumenCita').innerHTML = `
+      <p>📋 <strong>Tipo:</strong> ${tipoCita}</p>
+      <p>👨‍⚕️ <strong>Médico:</strong> ${medicoNombre}</p>
+      <p>📅 <strong>Fecha:</strong> ${fechaFormato}</p>
+    `;
+    
+    document.getElementById('containerConfirm').style.display = 'block';
+    document.getElementById('btnConfirmar').style.display = 'block';
+  } else {
+    document.getElementById('containerConfirm').style.display = 'none';
+    document.getElementById('btnConfirmar').style.display = 'none';
+  }
+}
+
+document.getElementById('fecha').addEventListener('change', actualizarResumen);
+document.getElementById('medico').addEventListener('change', cargarFechas);
+</script>
+
+<style>
+.form-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group.full {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--dark);
+}
+
+.form-group select {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #2563eb;
+}
+
+.btn-primary:disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: var(--border);
+  color: var(--dark);
+}
+
+.btn-secondary:hover {
+  background-color: #d1d5db;
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+small {
+  display: block;
+  margin-top: 0.25rem;
+}
+</style>
 {% endblock %}

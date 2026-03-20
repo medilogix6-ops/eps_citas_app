@@ -35,8 +35,10 @@
       {% endif %}
 
       <li class="section-label">{% if session.get('rol') == 'Administrador' %}Citas{% else %}Menú{% endif %}</li>
+      {% if session.get('rol') == 'Paciente' %}
+      <li><a href="{{ url_for('perfil_paciente') }}" {% if request.endpoint=='perfil_paciente' %}class="active"{% endif %}>👤 Mi Perfil</a></li>
+      {% endif %}
       <li><a href="{{ url_for('reservar') }}" {% if request.endpoint=='reservar' %}class="active"{% endif %}>📅 Reservar Cita</a></li>
-      <li><a href="{{ url_for('consulta_cita') }}" {% if request.endpoint=='consulta_cita' %}class="active"{% endif %}>🔍 Consultar Cita</a></li>
 
       {% if session.get('rol') == 'Administrador' %}
       <li class="section-label">Administración</li>

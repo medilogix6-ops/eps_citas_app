@@ -81,6 +81,8 @@ def init_db():
             id           INT AUTO_INCREMENT PRIMARY KEY,
             nombre       VARCHAR(120) NOT NULL,
             especialidad VARCHAR(80)  NOT NULL,
+            tipo_cita    ENUM('General','Odontología','Especialista') NOT NULL DEFAULT 'General',
+            direccion    VARCHAR(150),
             created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
@@ -133,13 +135,13 @@ def init_db():
         )
 
         cur.executemany(
-            "INSERT INTO medicos (nombre, especialidad) VALUES (%s,%s)",
+            "INSERT INTO medicos (nombre, especialidad, tipo_cita, direccion) VALUES (%s,%s,%s,%s)",
             [
-                ('Dr. Carlos Gómez',    'Medicina General'),
-                ('Dra. Laura Martínez', 'Odontología'),
-                ('Dr. Andrés Ríos',     'Cardiología'),
-                ('Dra. Sofía Herrera',  'Pediatría'),
-                ('Dr. Miguel Torres',   'Ortopedia'),
+                ('Dr. Carlos Gómez',    'Medicina General', 'General',       'Cra 7 # 32-16, Bogotá'),
+                ('Dra. Laura Martínez', 'Odontología',      'Odontología',   'Cra 9 # 45-20, Bogotá'),
+                ('Dr. Andrés Ríos',     'Cardiología',      'Especialista',  'Cra 11 # 50-10, Bogotá'),
+                ('Dra. Sofía Herrera',  'Pediatría',        'General',       'Cra 13 # 60-15, Bogotá'),
+                ('Dr. Miguel Torres',   'Ortopedia',        'Especialista',  'Cra 15 # 70-20, Bogotá'),
             ]
         )
 
