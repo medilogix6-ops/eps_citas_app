@@ -53,17 +53,24 @@ def admin_required(f):
     return login_required(decorated)
 
 # ──────────────────────────────────────────────
-#  AUTH
+#  PORTAL - INICIO
 # ──────────────────────────────────────────────
 @app.route('/')
-def index():
+def portal():
     if 'user_id' in session:
-        # Admin va al Dashboard, Paciente va directamente a Reservar Cita
+        # Si ya estás logueado, ve al dashboard o reserva según el rol
         if session.get('rol') == 'Administrador':
             return redirect(url_for('dashboard'))
         else:
             return redirect(url_for('reservar'))
-    return redirect(url_for('login_view'))
+    return render_template('portal.html')
+
+# ──────────────────────────────────────────────
+#  AUTH
+# ──────────────────────────────────────────────
+@app.route('/index')
+def index():
+    return redirect(url_for('portal'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_view():
@@ -102,11 +109,51 @@ def login_view():
         flash('Usuario o contraseña incorrectos.', 'error')
     return render_template('login.html')
 
+@app.route('/registro-portal', methods=['GET', 'POST'])
+def registro_portal():
+    """Registro de nuevos pacientes desde el portal público"""
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        correo = request.form.get('correo', '').strip()
+        password = request.form.get('password', '').strip()
+        documento = request.form.get('documento', '').strip()
+        nombre = request.form.get('nombre', '').strip()
+        apellido = request.form.get('apellido', '').strip()
+        telefono = request.form.get('telefono', '').strip()
+        eps = request.form.get('eps', '').strip()
+        
+        # Validar datos
+        if not all([username, correo, password, documento, nombre, apellido, telefono, eps]):
+            flash('Todos los campos son obligatorios.', 'error')
+            return render_template('registro_portal.html')
+        
+        # Registrar usuario (rol_id=2 es Paciente)
+        ok_user, msg_user = registrar_usuario(username, correo, password, rol_id=2)
+        
+        if not ok_user:
+            flash(f'Error al registrar usuario: {msg_user}', 'error')
+            return render_template('registro_portal.html')
+        
+        # Registrar paciente
+        ok_paciente, msg_paciente = registrar_paciente(documento, nombre, apellido, telefono, correo, eps)
+        
+        if ok_paciente:
+            flash('¡Registro exitoso! Ya puedes iniciar sesión.', 'success')
+            return redirect(url_for('login_view'))
+        else:
+            flash(f'Usuario creado pero error al registrar paciente: {msg_paciente}', 'warning')
+            return redirect(url_for('login_view'))
+    
+    return render_template('registro_portal.html')
+
 @app.route('/logout')
 def logout():
     session.clear()
     flash('Sesión cerrada correctamente.', 'success')
-    return redirect(url_for('login_view'))
+    return redirect(url_for('portal'))
 
 # ──────────────────────────────────────────────
 #  PERFIL DEL PACIENTE
@@ -165,6 +212,54 @@ def api_fechas_disponibles(medico_id):
 def dashboard():
     stats = estadisticas()
     return render_template('dashboard.html', stats=stats)
+
+@app.route('/api/estadisticas-filtradas')
+@admin_required
+def api_estadisticas_filtradas():
+    """API para obtener estadísticas filtradas por tipo de cita y doctor"""
+    from database import get_connection
+    
+    tipo_cita = request.args.get('tipo_cita', '')  # General, Odontología, Especialista
+    medico_id = request.args.get('medico_id', '')   # ID del médico
+    
+    conn = get_connection()
+    cur = conn.cursor(dictionary=True)
+    
+    try:
+        # Query base
+        query = "SELECT estado, COUNT(*) as count FROM citas WHERE 1=1"
+        params = []
+        
+        if tipo_cita:
+            query += " AND tipo_cita = %s"
+            params.append(tipo_cita)
+        
+        if medico_id:
+            query += " AND medico_id = %s"
+            params.append(medico_id)
+        
+        query += " GROUP BY estado"
+        
+        cur.execute(query, params)
+        resultados = cur.fetchall()
+        
+        # Crear diccionario con estados como claves
+        stats = {
+            'Pendiente': 0,
+            'Confirmada': 0,
+            'Cancelada': 0
+        }
+        
+        for row in resultados:
+            stats[row['estado']] = row['count']
+        
+        return jsonify(stats)
+    except Exception as e:
+        print(f"Error en api_estadisticas_filtradas: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
 
 # ──────────────────────────────────────────────
 #  PACIENTES
@@ -322,6 +417,26 @@ def eliminar(cita_id):
 def lista_usuarios():
     usuarios = listar_usuarios()
     return render_template('lista_usuarios.html', usuarios=usuarios)
+
+@app.route('/usuarios/crear', methods=['GET', 'POST'])
+@admin_required
+def crear_usuario():
+    """Crear nuevo usuario desde el admin"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        correo = request.form.get('correo', '').strip()
+        password = request.form.get('password', '').strip()
+        rol_id = int(request.form.get('rol_id', 2))
+        
+        if not all([username, correo, password]):
+            flash('Usuario, correo y contraseña son obligatorios.', 'error')
+        else:
+            ok, msg = registrar_usuario(username, correo, password, rol_id)
+            flash(msg, 'success' if ok else 'error')
+            if ok:
+                return redirect(url_for('lista_usuarios'))
+    
+    return render_template('crear_usuario.html')
 
 @app.route('/usuarios/editar/<int:uid>', methods=['GET', 'POST'])
 @admin_required
