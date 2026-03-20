@@ -56,7 +56,11 @@ def admin_required(f):
 @app.route('/')
 def index():
     if 'user_id' in session:
-        return redirect(url_for('dashboard'))
+        # Admin va al Dashboard, Paciente va directamente a Reservar Cita
+        if session.get('rol') == 'Administrador':
+            return redirect(url_for('dashboard'))
+        else:
+            return redirect(url_for('reservar'))
     return redirect(url_for('login_view'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -86,7 +90,7 @@ def logout():
 #  DASHBOARD
 # ──────────────────────────────────────────────
 @app.route('/dashboard')
-@login_required
+@admin_required
 def dashboard():
     stats = estadisticas()
     return render_template('dashboard.html', stats=stats)
@@ -95,13 +99,13 @@ def dashboard():
 #  PACIENTES
 # ──────────────────────────────────────────────
 @app.route('/pacientes')
-@login_required
+@admin_required
 def lista_pacientes():
     pacientes = obtener_todos()
     return render_template('lista_pacientes.html', pacientes=pacientes)
 
 @app.route('/pacientes/registro', methods=['GET', 'POST'])
-@login_required
+@admin_required
 def registro_paciente():
     if request.method == 'POST':
         doc  = request.form.get('documento','').strip()
@@ -120,7 +124,7 @@ def registro_paciente():
     return render_template('registro_paciente.html')
 
 @app.route('/pacientes/editar/<documento>', methods=['GET', 'POST'])
-@login_required
+@admin_required
 def editar_paciente(documento):
     pac = existe_paciente(documento)
     if not pac:

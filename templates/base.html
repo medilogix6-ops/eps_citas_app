@@ -26,11 +26,15 @@
     {% endif %}
 
     <ul class="sidebar-nav">
+      {% if session.get('rol') == 'Administrador' %}
       <li class="section-label">Principal</li>
       <li><a href="{{ url_for('dashboard') }}" {% if request.endpoint=='dashboard' %}class="active"{% endif %}>📊 Dashboard</a></li>
 
       <li class="section-label">Gestión</li>
       <li><a href="{{ url_for('lista_pacientes') }}" {% if 'paciente' in request.endpoint %}class="active"{% endif %}>🧑‍⚕️ Pacientes</a></li>
+      {% endif %}
+
+      <li class="section-label">{% if session.get('rol') == 'Administrador' %}Citas{% else %}Menú{% endif %}</li>
       <li><a href="{{ url_for('reservar') }}" {% if request.endpoint=='reservar' %}class="active"{% endif %}>📅 Reservar Cita</a></li>
       <li><a href="{{ url_for('consulta_cita') }}" {% if request.endpoint=='consulta_cita' %}class="active"{% endif %}>🔍 Consultar Cita</a></li>
 
