@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Médicos{% endblock %}
+{% block page_title %}👨‍⚕️ Médicos{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;align-items:start;flex-wrap:wrap;">
+
+  <!-- TABLA -->
+  <div>
+    <div class="page-header">
+      <div>
+        <h2>Médicos Registrados</h2>
+        <p>{{ medicos|length }} médico{{ 's' if medicos|length != 1 else '' }} en el sistema</p>
+      </div>
+    </div>
+
+    {% if medicos %}
+    <div class="card" style="padding:0;">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nombre</th>
+              <th>Especialidad</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in medicos %}
+            <tr>
+              <td style="color:var(--gray);font-size:.8rem;">{{ m.id }}</td>
+              <td><strong>{{ m.nombre }}</strong></td>
+              <td><span class="badge badge-teal">{{ m.especialidad }}</span></td>
+              <td>
+                <form method="POST" action="{{ url_for('eliminar_medico_view', mid=m.id) }}"
+                      onsubmit="return confirm('¿Eliminar al Dr. {{ m.nombre }}?')">
+                  <button class="btn btn-danger btn-xs">🗑️ Eliminar</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty">
+      <span class="icon">👨‍⚕️</span>
+      <p>No hay médicos registrados.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- FORM AGREGAR -->
+  <div class="card" style="position:sticky;top:72px;">
+    <h3 class="card-title" style="font-size:1.1rem;">➕ Agregar Médico</h3>
+    <form method="POST" action="{{ url_for('agregar_medico_view') }}">
+      <div class="form-group" style="margin-bottom:.9rem;">
+        <label>Nombre completo *</label>
+        <input type="text" name="nombre" placeholder="Ej: Dr. Pedro Sánchez" required/>
+      </div>
+      <div class="form-group" style="margin-bottom:1.25rem;">
+        <label>Especialidad *</label>
+        <select name="especialidad" required>
+          <option value="">— Seleccione —</option>
+          {% for esp in ['Medicina General','Odontología','Cardiología','Pediatría',
+                         'Ortopedia','Ginecología','Dermatología','Neurología',
+                         'Oftalmología','Psiquiatría','Otra'] %}
+            <option>{{ esp }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+        ✅ Agregar Médico
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

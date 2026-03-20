@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}📊 Dashboard{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('reservar') }}" class="btn btn-primary btn-sm">📅 Nueva Cita</a>
+{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="label">Total Citas</div>
+    <div class="value">{{ stats.total or 0 }}</div>
+    <div class="sub">registradas en el sistema</div>
+  </div>
+  <div class="stat-card gold">
+    <div class="label">Pendientes</div>
+    <div class="value">{{ stats.pendientes or 0 }}</div>
+    <div class="sub">en espera de atención</div>
+  </div>
+  <div class="stat-card green">
+    <div class="label">Confirmadas</div>
+    <div class="value">{{ stats.confirmadas or 0 }}</div>
+    <div class="sub">listas para atender</div>
+  </div>
+  <div class="stat-card red">
+    <div class="label">Canceladas</div>
+    <div class="value">{{ stats.canceladas or 0 }}</div>
+    <div class="sub">no se realizaron</div>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; flex-wrap:wrap;">
+  <div class="card">
+    <h3 class="card-title">🚀 Acciones Rápidas</h3>
+    <div style="display:flex;flex-direction:column;gap:.75rem;">
+      <a href="{{ url_for('registro_paciente') }}" class="btn btn-navy" style="justify-content:center;">🧑‍⚕️ Registrar Nuevo Paciente</a>
+      <a href="{{ url_for('reservar') }}" class="btn btn-primary" style="justify-content:center;">📅 Reservar Cita Médica</a>
+      <a href="{{ url_for('consulta_cita') }}" class="btn btn-secondary" style="justify-content:center;">🔍 Consultar Cita por Documento</a>
+      {% if session.rol == 'Administrador' %}
+      <a href="{{ url_for('todas_citas') }}" class="btn btn-warning" style="justify-content:center;">🗓️ Ver Todas las Citas</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="card-title">ℹ️ Información del Sistema</h3>
+    <div style="display:flex;flex-direction:column;gap:.75rem;font-size:.9rem;color:var(--gray);">
+      <div style="display:flex;justify-content:space-between;padding-bottom:.6rem;border-bottom:1px solid var(--gray-light);">
+        <span>Usuario activo</span>
+        <strong style="color:var(--navy);">{{ session.username }}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-bottom:.6rem;border-bottom:1px solid var(--gray-light);">
+        <span>Rol</span>
+        <span class="badge badge-teal">{{ session.rol }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-bottom:.6rem;border-bottom:1px solid var(--gray-light);">
+        <span>Programa</span>
+        <strong style="color:var(--navy);">ADSO19 – SENA</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <span>Tecnologías</span>
+        <strong style="color:var(--navy);">Python · Flask · MySQL</strong>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

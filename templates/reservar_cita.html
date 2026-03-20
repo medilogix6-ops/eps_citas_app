@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Reservar Cita{% endblock %}
+{% block page_title %}📅 Reservar Cita{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">← Volver</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:640px;">
+  <div class="card">
+    <h2 class="card-title">📅 Nueva Cita Médica</h2>
+    <form method="POST">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Documento del Paciente *</label>
+          <input type="text" name="documento" placeholder="Ingrese el número de identificación" required maxlength="15"/>
+          <small style="color:var(--gray);font-size:.78rem;">El paciente debe estar registrado previamente.</small>
+        </div>
+        <div class="form-group full">
+          <label>Médico Asignado *</label>
+          <select name="medico_id" required>
+            <option value="">— Seleccione médico —</option>
+            {% for m in medicos %}
+              <option value="{{ m.id }}">{{ m.nombre }} — {{ m.especialidad }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Tipo de Cita *</label>
+          <select name="tipo_cita" required>
+            <option value="">— Seleccione tipo —</option>
+            <option value="General">Medicina General</option>
+            <option value="Odontología">Odontología</option>
+            <option value="Especialista">Especialista</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha *</label>
+          <input type="date" name="fecha" required/>
+        </div>
+        <div class="form-group">
+          <label>Hora *</label>
+          <input type="time" name="hora" required/>
+        </div>
+        <div class="form-group full">
+          <label>Dirección de la EPS *</label>
+          <input type="text" name="direccion_eps" placeholder="Ej: Cra 7 # 32-16, Bogotá" required/>
+        </div>
+      </div>
+      <div class="form-actions">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary">📅 Confirmar Cita</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>document.querySelector('input[name="fecha"]').min=new Date().toISOString().split('T')[0];</script>
+{% endblock %}

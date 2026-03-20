@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Usuarios{% endblock %}
+{% block page_title %}👤 Usuarios del Sistema{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2>Usuarios Registrados</h2>
+    <p>{{ usuarios|length }} usuario{{ 's' if usuarios|length != 1 else '' }} en el sistema</p>
+  </div>
+</div>
+
+{% if usuarios %}
+<div class="card" style="padding:0;">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Usuario</th>
+          <th>Correo</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th>Registrado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr>
+          <td style="color:var(--gray);font-size:.8rem;">{{ u.id }}</td>
+          <td><strong>{{ u.username }}</strong></td>
+          <td style="font-size:.85rem;">{{ u.correo }}</td>
+          <td>
+            {% if u.rol == 'Administrador' %}
+              <span class="badge badge-navy">👑 {{ u.rol }}</span>
+            {% else %}
+              <span class="badge badge-teal">👤 {{ u.rol }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.activo %}
+              <span class="badge badge-green">● Activo</span>
+            {% else %}
+              <span class="badge badge-red">● Inactivo</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.82rem;color:var(--gray);">
+            {{ u.created_at.strftime('%d/%m/%Y') if u.created_at else '—' }}
+          </td>
+          <td class="actions">
+            <a class="btn btn-xs btn-navy" href="{{ url_for('editar_usuario', uid=u.id) }}" style="margin-right:.4rem;">
+              ✏️ Editar
+            </a>
+            {% if u.id != session.user_id %}
+            <form method="POST" action="{{ url_for('toggle_usuario', uid=u.id) }}" style="display:inline;">
+              <button class="btn btn-xs {{ 'btn-danger' if u.activo else 'btn-secondary' }}">
+                {{ '🔒 Desactivar' if u.activo else '🔓 Activar' }}
+              </button>
+            </form>
+            {% else %}
+              <span style="font-size:.78rem;color:var(--gray);">— tu cuenta —</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty">
+  <span class="icon">👤</span>
+  <p>No hay usuarios registrados.</p>
+</div>
+{% endif %}
+{% endblock %}

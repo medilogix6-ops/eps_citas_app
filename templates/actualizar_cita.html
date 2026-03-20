@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Actualizar Cita{% endblock %}
+{% block page_title %}✏️ Actualizar Cita{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('consulta_cita') }}" class="btn btn-secondary btn-sm">← Volver</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:640px;">
+  <div class="card">
+    <h2 class="card-title">✏️ Modificar Cita #{{ cita.id }}</h2>
+    <div style="background:var(--teal-pale);border-radius:8px;padding:.85rem 1rem;margin-bottom:1.5rem;font-size:.875rem;color:var(--teal);">
+      Paciente: <strong>{{ cita.pac_nombre }} {{ cita.pac_apellido }}</strong> &mdash; Doc: {{ cita.documento }}
+    </div>
+    <form method="POST">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Médico Asignado *</label>
+          <select name="medico_id" required>
+            {% for m in medicos %}
+              <option value="{{ m.id }}" {{ 'selected' if cita.medico_id == m.id }}>
+                {{ m.nombre }} — {{ m.especialidad }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Cita *</label>
+          <select name="tipo_cita" required>
+            {% for t in ['General','Odontología','Especialista'] %}
+              <option value="{{ t }}" {{ 'selected' if cita.tipo_cita == t }}>{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select name="estado">
+            {% for st in ['Pendiente','Confirmada','Cancelada'] %}
+              <option value="{{ st }}" {{ 'selected' if cita.estado == st }}>{{ st }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha *</label>
+          <input type="date" name="fecha"
+                 value="{{ cita.fecha.strftime('%Y-%m-%d') if cita.fecha else '' }}" required/>
+        </div>
+        <div class="form-group">
+          <label>Hora *</label>
+          <input type="time" name="hora"
+                 value="{% if cita.hora %}{% set ts=cita.hora.total_seconds()|int %}{{ '%02d:%02d'|format(ts//3600,(ts%3600)//60) }}{% endif %}"
+                 required/>
+        </div>
+        <div class="form-group full">
+          <label>Dirección de la EPS *</label>
+          <input type="text" name="direccion_eps" value="{{ cita.direccion_eps or '' }}" required/>
+        </div>
+      </div>
+      <div class="form-actions">
+        <a href="{{ url_for('consulta_cita') }}" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary">💾 Guardar Cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

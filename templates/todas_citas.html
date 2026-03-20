@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Todas las Citas{% endblock %}
+{% block page_title %}🗓️ Todas las Citas{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('reservar') }}" class="btn btn-primary btn-sm">📅 Nueva Cita</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2>Registro General de Citas</h2>
+    <p>{{ citas|length }} cita{{ 's' if citas|length != 1 else '' }} en total</p>
+  </div>
+</div>
+
+{% if citas %}
+<div class="card" style="padding:0;">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Paciente</th>
+          <th>Documento</th>
+          <th>Médico</th>
+          <th>Tipo</th>
+          <th>Fecha</th>
+          <th>Hora</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in citas %}
+        <tr>
+          <td style="color:var(--gray);font-size:.8rem;">{{ c.cita_id }}</td>
+          <td><strong>{{ c.pac_nombre }} {{ c.pac_apellido }}</strong></td>
+          <td><code style="background:var(--teal-pale);padding:.15rem .45rem;border-radius:4px;font-size:.8rem;">{{ c.documento }}</code></td>
+          <td>
+            <span style="font-weight:500;">{{ c.medico }}</span><br>
+            <span style="font-size:.78rem;color:var(--gray);">{{ c.especialidad }}</span>
+          </td>
+          <td><span class="badge badge-navy">{{ c.tipo_cita }}</span></td>
+          <td>{{ c.fecha.strftime('%d/%m/%Y') if c.fecha else '—' }}</td>
+          <td>
+            {% if c.hora %}
+              {% set ts = c.hora.total_seconds()|int %}
+              {{ '%02d:%02d'|format(ts//3600, (ts%3600)//60) }}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if c.estado == 'Confirmada' %}
+              <span class="badge badge-green">✔ {{ c.estado }}</span>
+            {% elif c.estado == 'Pendiente' %}
+              <span class="badge badge-gold">⏳ {{ c.estado }}</span>
+            {% else %}
+              <span class="badge badge-red">✕ {{ c.estado }}</span>
+            {% endif %}
+          </td>
+          <td style="display:flex;gap:.35rem;flex-wrap:wrap;">
+            <a href="{{ url_for('actualizar', cita_id=c.cita_id) }}" class="btn btn-warning btn-xs">✏️</a>
+            <form method="POST" action="{{ url_for('eliminar', cita_id=c.cita_id) }}"
+                  onsubmit="return confirm('¿Eliminar cita #{{ c.cita_id }}?')">
+              <button class="btn btn-danger btn-xs">🗑️</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty">
+  <span class="icon">🗓️</span>
+  <p>No hay citas registradas en el sistema.</p>
+  <a href="{{ url_for('reservar') }}" class="btn btn-primary">📅 Reservar Primera Cita</a>
+</div>
+{% endif %}
+{% endblock %}

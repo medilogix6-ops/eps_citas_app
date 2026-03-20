@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Consultar Cita{% endblock %}
+{% block page_title %}🔍 Consultar Cita{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('reservar') }}" class="btn btn-primary btn-sm">📅 Reservar Cita</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:520px; margin-bottom:2rem;">
+  <div class="card">
+    <h2 class="card-title">🔍 Buscar por Documento</h2>
+    <form method="POST">
+      <div class="form-group">
+        <label>Número de Identificación</label>
+        <input type="text" name="documento" value="{{ documento }}" placeholder="Ej: 1020304050" required maxlength="15" autofocus/>
+      </div>
+      <div class="form-actions" style="justify-content:flex-start;margin-top:1rem;">
+        <button type="submit" class="btn btn-primary">🔍 Consultar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if citas %}
+  {% set c0 = citas[0] %}
+  <div class="cita-header">
+    <div class="name">{{ c0.pac_nombre }} {{ c0.pac_apellido }}</div>
+    <div class="sub">EPS: {{ c0.eps or 'No especificada' }} &nbsp;|&nbsp; Doc: {{ documento }}</div>
+    <div class="sub" style="margin-top:.5rem;">{{ citas|length }} cita{{ 's' if citas|length>1 else '' }} encontrada{{ 's' if citas|length>1 else '' }}</div>
+  </div>
+
+  {% for c in citas %}
+  <div class="card" style="margin-bottom:1rem;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1rem;">
+      <div>
+        {% if c.estado == 'Confirmada' %}
+          <span class="badge badge-green">✔ {{ c.estado }}</span>
+        {% elif c.estado == 'Pendiente' %}
+          <span class="badge badge-gold">⏳ {{ c.estado }}</span>
+        {% else %}
+          <span class="badge badge-red">✕ {{ c.estado }}</span>
+        {% endif %}
+        <span class="badge badge-navy" style="margin-left:.4rem;">{{ c.tipo_cita }}</span>
+        <h3 style="font-family:'DM Serif Display',serif;margin-top:.5rem;font-size:1.15rem;">{{ c.medico }}</h3>
+        <p style="color:var(--gray);font-size:.83rem;">{{ c.especialidad }}</p>
+      </div>
+      <div style="display:flex;gap:.45rem;flex-wrap:wrap;">
+        <a href="{{ url_for('actualizar', cita_id=c.cita_id) }}" class="btn btn-warning btn-sm">✏️ Actualizar</a>
+        <form method="POST" action="{{ url_for('eliminar', cita_id=c.cita_id) }}"
+              onsubmit="return confirm('¿Eliminar esta cita?')">
+          <button class="btn btn-danger btn-sm">🗑️ Eliminar</button>
+        </form>
+      </div>
+    </div>
+    <div class="result-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));">
+      <div class="result-item" style="background:var(--teal-pale);border-radius:10px;padding:.85rem 1rem;">
+        <div class="rlabel" style="color:var(--teal);">📅 Fecha</div>
+        <div class="rvalue" style="color:var(--navy);">{{ c.fecha.strftime('%d/%m/%Y') if c.fecha else '—' }}</div>
+      </div>
+      <div class="result-item" style="background:var(--teal-pale);border-radius:10px;padding:.85rem 1rem;">
+        <div class="rlabel" style="color:var(--teal);">🕐 Hora</div>
+        <div class="rvalue" style="color:var(--navy);">
+          {% if c.hora %}
+            {% set ts = c.hora.total_seconds()|int %}
+            {{ '%02d:%02d'|format(ts//3600,(ts%3600)//60) }}
+          {% else %}—{% endif %}
+        </div>
+      </div>
+      <div class="result-item" style="background:var(--teal-pale);border-radius:10px;padding:.85rem 1rem;">
+        <div class="rlabel" style="color:var(--teal);">📍 Dirección</div>
+        <div class="rvalue" style="color:var(--navy);font-size:.88rem;">{{ c.direccion_eps or '—' }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+{% elif documento %}
+  <div class="empty">
+    <span class="icon">📋</span>
+    <p>No se encontraron citas para el documento <strong>{{ documento }}</strong>.</p>
+    <a href="{{ url_for('reservar') }}" class="btn btn-primary">📅 Reservar Cita</a>
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Registrar Paciente{% endblock %}
+{% block page_title %}🧑‍⚕️ Registrar Paciente{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('lista_pacientes') }}" class="btn btn-secondary btn-sm">← Volver</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:640px;">
+  <div class="card">
+    <h2 class="card-title">🧑‍⚕️ Nuevo Paciente</h2>
+    <form method="POST">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label for="documento">Número de Identificación *</label>
+          <input type="text" id="documento" name="documento" placeholder="Ej: 1020304050" required maxlength="15"/>
+        </div>
+        <div class="form-group">
+          <label for="nombre">Nombre *</label>
+          <input type="text" id="nombre" name="nombre" placeholder="Ej: Juan" required/>
+        </div>
+        <div class="form-group">
+          <label for="apellido">Apellido *</label>
+          <input type="text" id="apellido" name="apellido" placeholder="Ej: Pérez" required/>
+        </div>
+        <div class="form-group">
+          <label for="telefono">Teléfono</label>
+          <input type="tel" id="telefono" name="telefono" placeholder="Ej: 3101234567"/>
+        </div>
+        <div class="form-group">
+          <label for="correo">Correo Electrónico</label>
+          <input type="email" id="correo" name="correo" placeholder="correo@ejemplo.com"/>
+        </div>
+        <div class="form-group full">
+          <label for="eps">EPS Asignada</label>
+          <select id="eps" name="eps">
+            <option value="">— Seleccione —</option>
+            {% for e in ['Sura','Nueva EPS','Compensar','Coomeva','Sanitas','Coosalud','Famisanar','Salud Total','Otra'] %}
+              <option>{{ e }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <a href="{{ url_for('lista_pacientes') }}" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary">✅ Registrar Paciente</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
