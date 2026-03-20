@@ -32,10 +32,10 @@ def init_db():
     cur = conn.cursor()
 
     cur.execute(
-        "CREATE DATABASE IF NOT EXISTS eps_citas "
+        f"CREATE DATABASE IF NOT EXISTS `{Config.MYSQL_DB}` "
         "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
     )
-    cur.execute("USE eps_citas;")
+    cur.execute(f"USE `{Config.MYSQL_DB}`;")
 
     # --- 2. Tablas ---
     cur.execute("""
