@@ -70,6 +70,13 @@ def portal():
 # ──────────────────────────────────────────────
 @app.route('/index')
 def index():
+    # Si ya está logueado, redirige al dashboard o reserva
+    if 'user_id' in session:
+        if session.get('rol') == 'Administrador':
+            return redirect(url_for('dashboard'))
+        else:
+            return redirect(url_for('reservar'))
+    # Si no está logueado, ir al portal
     return redirect(url_for('portal'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -162,20 +169,46 @@ def logout():
 @login_required
 def perfil_paciente():
     """Perfil del paciente con su información y citas"""
-    doc = session.get('documento_paciente')
-    if not doc and session.get('rol') == 'Administrador':
+    # Si es administrador, no puede acceder
+    if session.get('rol') == 'Administrador':
         flash('Esta página es solo para pacientes.', 'error')
         return redirect(url_for('dashboard'))
-    if not doc:
-        flash('No hay información del paciente en tu cuenta.', 'error')
-        return redirect(url_for('index'))
     
+    # Obtener documento del paciente
+    doc = session.get('documento_paciente')
+    
+    # Si no está en sesión, intentar obtenerlo de la BD
+    if not doc:
+        from database import get_connection
+        conn = get_connection()
+        cur = conn.cursor(dictionary=True)
+        try:
+            cur.execute(
+                "SELECT documento FROM pacientes WHERE correo = %s LIMIT 1",
+                (session.get('correo'),)
+            )
+            resultado = cur.fetchone()
+            if resultado:
+                doc = resultado['documento']
+                session['documento_paciente'] = doc
+        finally:
+            cur.close()
+            conn.close()
+    
+    # Si aún no tiene documento, redirigir a reservar cita
+    if not doc:
+        flash('No hay información del paciente. Por favor, agende una cita.', 'error')
+        return redirect(url_for('reservar'))
+    
+    # Obtener información del paciente
     paciente = obtener_info_paciente(doc)
-    citas = obtener_citas_paciente(doc) if paciente else []
     
     if not paciente:
-        flash('Paciente no encontrado.', 'error')
-        return redirect(url_for('index'))
+        flash('Paciente no encontrado en el sistema.', 'error')
+        return redirect(url_for('reservar'))
+    
+    # Obtener citas del paciente
+    citas = obtener_citas_paciente(doc) if paciente else []
     
     return render_template('perfil_paciente.html', paciente=paciente, citas=citas)
 
