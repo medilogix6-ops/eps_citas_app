@@ -35,7 +35,7 @@
     <h3 class="card-title">📈 Estadísticas de Citas Médicas</h3>
     
     <!-- FILTROS -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--gray-light);">
+    <div style="display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--gray-light);">
       <div>
         <label for="filtro-tipo-cita" style="font-size: 0.9rem; font-weight: 600; color: var(--gray); display: block; margin-bottom: 0.5rem;">Tipo de Cita:</label>
         <select id="filtro-tipo-cita" style="width: 100%; padding: 0.5rem; border: 1px solid var(--gray-light); border-radius: 4px; font-size: 0.9rem;">
@@ -43,12 +43,6 @@
           <option value="General">General</option>
           <option value="Odontología">Odontología</option>
           <option value="Especialista">Especialista</option>
-        </select>
-      </div>
-      <div>
-        <label for="filtro-doctor" style="font-size: 0.9rem; font-weight: 600; color: var(--gray); display: block; margin-bottom: 0.5rem;">Doctor:</label>
-        <select id="filtro-doctor" style="width: 100%; padding: 0.5rem; border: 1px solid var(--gray-light); border-radius: 4px; font-size: 0.9rem;">
-          <option value="">-- Todos --</option>
         </select>
       </div>
     </div>
@@ -86,41 +80,6 @@
   </div>
 </div>
 
-<!-- INFORMACIÓN MEDILOGIX -->
-<div class="card">
-  <h3 class="card-title">🏥 Sistema MEDILOGIX</h3>
-  <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:2rem;">
-    <div style="display:flex;flex-direction:column;gap:1rem;font-size:.9rem;color:var(--gray);">
-      <div style="display:flex;justify-content:space-between;padding-bottom:.6rem;border-bottom:1px solid var(--gray-light);">
-        <span>Empresa</span>
-        <strong style="color:var(--navy);">MEDILOGIX</strong>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding-bottom:.6rem;border-bottom:1px solid var(--gray-light);">
-        <span>Ubicación</span>
-        <strong style="color:var(--navy);">Barranquilla, Colombia</strong>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding-bottom:.6rem;border-bottom:1px solid var(--gray-light);">
-        <span>Red de Hospitales</span>
-        <strong style="color:var(--navy);">Múltiples Sedes</strong>
-      </div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:1rem;font-size:.9rem;color:var(--gray);">
-      <div style="display:flex;justify-content:space-between;padding-bottom:.6rem;border-bottom:1px solid var(--gray-light);">
-        <span>Plataforma</span>
-        <strong style="color:var(--navy);">2026</strong>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding-bottom:.6rem;border-bottom:1px solid var(--gray-light);">
-        <span>Rol</span>
-        <span class="badge badge-teal">{{ session.rol }}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;">
-        <span>Tecnologías</span>
-        <strong style="color:var(--navy);">Python · Flask · MySQL</strong>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- SCRIPT PARA CHART.JS Y FILTROS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -137,11 +96,9 @@
   // Función para actualizar el gráfico
   function actualizarGrafico() {
     const tipoCita = document.getElementById('filtro-tipo-cita').value;
-    const medicoId = document.getElementById('filtro-doctor').value;
     
     let url = '{{ url_for("api_estadisticas_filtradas") }}';
     if (tipoCita) url += `?tipo_cita=${tipoCita}`;
-    if (medicoId) url += `${tipoCita ? '&' : '?'}medico_id=${medicoId}`;
     
     fetch(url)
       .then(response => response.json())
@@ -204,7 +161,6 @@
   
   // Listeners para filtros
   document.getElementById('filtro-tipo-cita').addEventListener('change', actualizarGrafico);
-  document.getElementById('filtro-doctor').addEventListener('change', actualizarGrafico);
   
   // Cargar gráfico inicial
   actualizarGrafico();

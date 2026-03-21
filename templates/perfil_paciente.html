@@ -1,9 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Mi Perfil{% endblock %}
 {% block page_title %}👤 Mi Perfil{% endblock %}
-{% block topbar_actions %}
-  <a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">← Volver</a>
-{% endblock %}
+{% block topbar_actions %}{% endblock %}
 
 {% block content %}
 <div style="max-width:900px;">
@@ -48,10 +46,7 @@
 
   <!-- Mis Citas -->
   <div class="card" style="margin-top:2rem;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-      <h2 class="card-title" style="margin:0;">📅 Mis Citas Reservadas</h2>
-      <a href="{{ url_for('reservar') }}" class="btn btn-primary btn-sm">+ Nueva Cita</a>
-    </div>
+    <h2 class="card-title" style="margin-bottom:1.5rem;">📅 Mis Citas Reservadas</h2>
 
     {% if citas %}
     <div class="table-responsive">

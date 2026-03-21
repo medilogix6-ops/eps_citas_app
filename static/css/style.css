@@ -383,6 +383,7 @@ thead th {
   letter-spacing: .06em;
   text-transform: uppercase;
 }
+thead th:hover { background: var(--navy); color: var(--white); }
 
 tbody tr { border-bottom: 1px solid var(--gray-light); transition: var(--transition); }
 tbody tr:last-child { border-bottom: none; }

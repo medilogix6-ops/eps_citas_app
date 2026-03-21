@@ -2,7 +2,7 @@
 {% block title %}Actualizar Cita{% endblock %}
 {% block page_title %}✏️ Actualizar Cita{% endblock %}
 {% block topbar_actions %}
-  <a href="{{ url_for('consulta_cita') }}" class="btn btn-secondary btn-sm">← Volver</a>
+  <a href="{{ url_for('todas_citas') }}" class="btn btn-secondary btn-sm">← Volver</a>
 {% endblock %}
 
 {% block content %}
@@ -57,7 +57,7 @@
         </div>
       </div>
       <div class="form-actions">
-        <a href="{{ url_for('consulta_cita') }}" class="btn btn-secondary">Cancelar</a>
+        <a href="{{ url_for('todas_citas') }}" class="btn btn-secondary">Cancelar</a>
         <button type="submit" class="btn btn-primary">💾 Guardar Cambios</button>
       </div>
     </form>
