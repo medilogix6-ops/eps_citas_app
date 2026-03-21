@@ -1,4 +1,6 @@
 import os, sys
+from datetime import timedelta
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 from flask import (Flask, render_template, request, redirect,
@@ -25,6 +27,16 @@ from models.citas     import (reservar_cita, obtener_citas_paciente,
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
 
+# Detectar si estamos en producción (Railway usa HTTPS)
+IS_PRODUCTION = os.environ.get('RAILWAY_ENVIRONMENT') is not None or \
+                os.environ.get('RAILWAY_PROJECT_ID') is not None
+
+# Configurar sesiones — SECURE=True es obligatorio en HTTPS (Railway)
+app.config['SESSION_COOKIE_SECURE'] = IS_PRODUCTION
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 horas
+
 try:
     init_db()
     print("✅ Base de datos inicializada.")
@@ -46,11 +58,20 @@ def login_required(f):
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Debes iniciar sesión.', 'error')
+            return redirect(url_for('login_view'))
+        
         if session.get('rol') != 'Administrador':
             flash('Acceso restringido a administradores.', 'error')
-            return redirect(url_for('dashboard'))
+            # Redirige a un lugar seguro según el rol
+            if session.get('rol') == 'Paciente':
+                return redirect(url_for('perfil_paciente'))
+            else:
+                return redirect(url_for('portal'))
+        
         return f(*args, **kwargs)
-    return login_required(decorated)
+    return decorated
 
 # ──────────────────────────────────────────────
 #  PORTAL - INICIO
@@ -58,11 +79,10 @@ def admin_required(f):
 @app.route('/')
 def portal():
     if 'user_id' in session:
-        # Si ya estás logueado, ve al dashboard o reserva según el rol
         if session.get('rol') == 'Administrador':
             return redirect(url_for('dashboard'))
         else:
-            return redirect(url_for('reservar'))
+            return redirect(url_for('perfil_paciente'))
     return render_template('portal.html')
 
 # ──────────────────────────────────────────────
@@ -70,24 +90,28 @@ def portal():
 # ──────────────────────────────────────────────
 @app.route('/index')
 def index():
-    # Si ya está logueado, redirige al dashboard o reserva
     if 'user_id' in session:
         if session.get('rol') == 'Administrador':
             return redirect(url_for('dashboard'))
         else:
-            return redirect(url_for('reservar'))
-    # Si no está logueado, ir al portal
+            return redirect(url_for('perfil_paciente'))
     return redirect(url_for('portal'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_view():
     if 'user_id' in session:
-        return redirect(url_for('dashboard'))
+        if session.get('rol') == 'Administrador':
+            return redirect(url_for('dashboard'))
+        else:
+            return redirect(url_for('perfil_paciente'))
+    
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         user = login(username, password)
+        
         if user:
+            # Guardar datos en sesión
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['correo'] = user.get('correo', '')
@@ -112,15 +136,24 @@ def login_view():
                     conn.close()
             
             flash(f'Bienvenido, {user["username"]} 👋', 'success')
-            return redirect(url_for('dashboard'))
+            
+            # Redirigir según el rol
+            if user['rol'] == 'Administrador':
+                return redirect(url_for('dashboard'))
+            else:
+                return redirect(url_for('perfil_paciente'))
+        
         flash('Usuario o contraseña incorrectos.', 'error')
+    
     return render_template('login.html')
 
 @app.route('/registro-portal', methods=['GET', 'POST'])
 def registro_portal():
     """Registro de nuevos pacientes desde el portal público"""
     if 'user_id' in session:
-        return redirect(url_for('dashboard'))
+        if session.get('rol') == 'Administrador':
+            return redirect(url_for('dashboard'))
+        return redirect(url_for('perfil_paciente'))
     
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -195,17 +228,18 @@ def perfil_paciente():
             cur.close()
             conn.close()
     
-    # Si aún no tiene documento, redirigir a reservar cita
+    # Si aún no tiene documento, mostrar perfil vacío con mensaje
     if not doc:
-        flash('No hay información del paciente. Por favor, agende una cita.', 'error')
-        return redirect(url_for('reservar'))
+        flash('No se encontró tu información de paciente. Si te registraste recientemente, '
+              'contacta al administrador.', 'warning')
+        return render_template('perfil_paciente.html', paciente=None, citas=[])
     
     # Obtener información del paciente
     paciente = obtener_info_paciente(doc)
     
     if not paciente:
-        flash('Paciente no encontrado en el sistema.', 'error')
-        return redirect(url_for('reservar'))
+        flash('Paciente no encontrado en el sistema. Contacta al administrador.', 'error')
+        return render_template('perfil_paciente.html', paciente=None, citas=[])
     
     # Obtener citas del paciente
     citas = obtener_citas_paciente(doc) if paciente else []
@@ -502,6 +536,15 @@ def toggle_usuario(uid):
     toggle_activo(uid)
     flash('Estado del usuario actualizado.', 'success')
     return redirect(url_for('lista_usuarios'))
+
+# ──────────────────────────────────────────────
+#  SESIONES Y CACHÉ
+# ──────────────────────────────────────────────
+@app.before_request
+def before_request():
+    """Marcar sesión como permanente"""
+    session.permanent = True
+    app.permanent_session_lifetime = timedelta(hours=24)
 
 # ──────────────────────────────────────────────
 #  HEALTH CHECK

@@ -7,6 +7,14 @@
 
 {% block content %}
 <div style="max-width:900px;">
+  {% if not paciente %}
+  <div class="card" style="text-align:center;padding:3rem;">
+    <h2 class="card-title">⚠️ Información no disponible</h2>
+    <p style="color:var(--gray);margin:1rem 0;">No se encontró tu información de paciente en el sistema.</p>
+    <p style="color:var(--gray);margin-bottom:2rem;">Si acabas de registrarte, es posible que tus datos aún no estén vinculados. Contacta al administrador.</p>
+    <a href="{{ url_for('logout') }}" class="btn btn-secondary">Cerrar sesión</a>
+  </div>
+  {% else %}
   <!-- Información del Paciente -->
   <div class="card">
     <h2 class="card-title">📋 Información Personal</h2>
@@ -100,6 +108,7 @@
     {% endif %}
   </div>
 </div>
+  {% endif %}
 
 <style>
 .info-grid {
