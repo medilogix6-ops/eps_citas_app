@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 {% block title %}Usuarios{% endblock %}
 {% block page_title %}👤 Usuarios del Sistema{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('crear_usuario') }}" class="btn btn-primary btn-sm">➕ Nuevo Usuario</a>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">

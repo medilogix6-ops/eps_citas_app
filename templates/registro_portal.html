@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Registro - MEDILOGIX</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏥</text></svg>"/>
+  <style>
+    body {
+      background: linear-gradient(135deg, #001a4d 0%, #003d99 50%, #0052cc 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      margin: 0;
+    }
+
+    .register-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+      width: 100%;
+      padding: 3rem;
+      animation: slideUp 0.5s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .register-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .register-header .logo-icon {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 1rem;
+    }
+
+    .register-header h1 {
+      color: #001a4d;
+      margin: 0;
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .register-header p {
+      color: #666;
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .form-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-section h3 {
+      color: #001a4d;
+      font-size: 1rem;
+      margin: 1.5rem 0 1rem 0;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid #0052cc;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+      box-sizing: border-box;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #0052cc;
+      box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.1);
+    }
+
+    .form-group small {
+      display: block;
+      color: #999;
+      margin-top: 0.3rem;
+      font-size: 0.85rem;
+    }
+
+    .required {
+      color: #ff6b35;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.9rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-decoration: none;
+      text-align: center;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0052cc 0%, #003d99 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 82, 204, 0.3);
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+      border: 2px solid #ddd;
+    }
+
+    .btn-secondary:hover {
+      background: #e6e6e6;
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #ddd;
+      color: #666;
+      font-size: 0.95rem;
+    }
+
+    .login-link a {
+      color: #0052cc;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .login-link a:hover {
+      text-decoration: underline;
+    }
+
+    .flash-container {
+      margin-bottom: 1.5rem;
+    }
+
+    .flash {
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .flash.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .flash.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body>
+
+<div class="register-container">
+  <!-- HEADER -->
+  <div class="register-header">
+    <span class="logo-icon">🏥</span>
+    <h1>MEDILOGIX</h1>
+    <p>Crea tu cuenta y comienza a agendar tus citas</p>
+  </div>
+
+  <!-- MESSAGES -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for cat, msg in messages %}
+          <div class="flash {{ cat }}">
+            <span>{{ '✅' if cat == 'success' else '❌' }}</span>
+            <span>{{ msg }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- FORM -->
+  <form method="POST" onsubmit="return validarFormulario()">
+    <!-- DATOS DE USUARIO -->
+    <div class="form-section">
+      <h3>👤 Datos de Usuario</h3>
+
+      <div class="form-group">
+        <label for="username">Nombre de Usuario <span class="required">*</span></label>
+        <input type="text" id="username" name="username" placeholder="usuario123" required autofocus/>
+        <small>Entre 4 y 30 caracteres, sin espacios</small>
+      </div>
+
+      <div class="form-group">
+        <label for="correo">Correo Electrónico <span class="required">*</span></label>
+        <input type="email" id="correo" name="correo" placeholder="tu@email.com" required/>
+        <small>Te utilizaremos para confirmaciones</small>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Contraseña <span class="required">*</span></label>
+        <input type="password" id="password" name="password" placeholder="••••••••" required/>
+        <small>Mínimo 6 caracteres, con mayúscula y número</small>
+      </div>
+
+      <div class="form-group">
+        <label for="password_confirm">Confirmar Contraseña <span class="required">*</span></label>
+        <input type="password" id="password_confirm" name="password_confirm" placeholder="••••••••" required/>
+      </div>
+    </div>
+
+    <!-- DATOS PERSONALES -->
+    <div class="form-section">
+      <h3>📋 Datos Personales</h3>
+
+      <div class="form-group">
+        <label for="documento">Documento de Identidad <span class="required">*</span></label>
+        <input type="text" id="documento" name="documento" placeholder="1234567890" required/>
+        <small>Cédula, pasaporte o documento válido</small>
+      </div>
+
+      <div class="form-group">
+        <label for="nombre">Nombre <span class="required">*</span></label>
+        <input type="text" id="nombre" name="nombre" placeholder="Juan" required/>
+      </div>
+
+      <div class="form-group">
+        <label for="apellido">Apellido <span class="required">*</span></label>
+        <input type="text" id="apellido" name="apellido" placeholder="Pérez" required/>
+      </div>
+
+      <div class="form-group">
+        <label for="telefono">Teléfono <span class="required">*</span></label>
+        <input type="tel" id="telefono" name="telefono" placeholder="3001234567" required/>
+      </div>
+
+      <div class="form-group">
+        <label for="eps">EPS <span class="required">*</span></label>
+        <select id="eps" name="eps" required>
+          <option value="">-- Selecciona tu EPS --</option>
+          <option value="Famisanar">Famisanar</option>
+          <option value="Sanitas">Sanitas</option>
+          <option value="Coomeva">Coomeva</option>
+          <option value="Axa Colpatria">Axa Colpatria</option>
+          <option value="Chapindero">Chapindero</option>
+          <option value="SOS">SOS</option>
+          <option value="Salud Total">Salud Total</option>
+          <option value="Compensar">Compensar</option>
+          <option value="Otra">Otra</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ACCIONES -->
+    <div class="form-actions">
+      <a href="{{ url_for('portal') }}" class="btn btn-secondary">← Atrás</a>
+      <button type="submit" class="btn btn-primary">✅ Registrarse</button>
+    </div>
+  </form>
+
+  <!-- LOGIN LINK -->
+  <div class="login-link">
+    ¿Ya tienes cuenta? <a href="{{ url_for('login_view') }}">Inicia sesión aquí</a>
+  </div>
+</div>
+
+<script>
+  function validarFormulario() {
+    const password = document.getElementById('password').value;
+    const password_confirm = document.getElementById('password_confirm').value;
+
+    if (password !== password_confirm) {
+      alert('❌ Las contraseñas no coinciden');
+      return false;
+    }
+
+    if (password.length < 6) {
+      alert('❌ La contraseña debe tener mínimo 6 caracteres');
+      return false;
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      alert('❌ La contraseña debe contener una mayúscula');
+      return false;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      alert('❌ La contraseña debe contener un número');
+      return false;
+    }
+
+    const username = document.getElementById('username').value;
+    if (username.length < 4 || username.length > 30) {
+      alert('❌ El usuario debe tener entre 4 y 30 caracteres');
+      return false;
+    }
+
+    return true;
+  }
+</script>
+
+</body>
+</html>

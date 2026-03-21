@@ -159,11 +159,11 @@ def init_db():
         cur.executemany(
             "INSERT INTO citas (documento,medico_id,tipo_cita,fecha,hora,direccion_eps,estado) VALUES (%s,%s,%s,%s,%s,%s,%s)",
             [
-                ('1020304050',1,'General',     '2025-07-10','08:00:00','Cra 7 # 32-16, Bogotá',         'Confirmada'),
-                ('1030405060',2,'Odontología', '2025-07-11','10:30:00','Av. El Dorado # 68-65, Bogotá', 'Pendiente'),
-                ('1040506070',3,'Especialista','2025-07-12','14:00:00','Cll 100 # 19-61, Bogotá',       'Pendiente'),
-                ('1050607080',4,'General',     '2025-07-15','09:00:00','Cra 15 # 80-45, Bogotá',        'Confirmada'),
-                ('1060708090',5,'Especialista','2025-07-16','11:00:00','Cll 72 # 10-07, Bogotá',        'Cancelada'),
+                ('1020304050',1,'General',     '2026-07-10','08:00:00','Cra 7 # 32-16, Bogotá',         'Confirmada'),
+                ('1030405060',2,'Odontología', '2026-07-11','10:30:00','Av. El Dorado # 68-65, Bogotá', 'Pendiente'),
+                ('1040506070',3,'Especialista','2026-07-12','14:00:00','Cll 100 # 19-61, Bogotá',       'Pendiente'),
+                ('1050607080',4,'General',     '2026-07-15','09:00:00','Cra 15 # 80-45, Bogotá',        'Confirmada'),
+                ('1060708090',5,'Especialista','2026-07-16','11:00:00','Cll 72 # 10-07, Bogotá',        'Cancelada'),
             ]
         )
 

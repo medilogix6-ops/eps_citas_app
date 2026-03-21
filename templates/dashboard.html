@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard{% endblock %}
-{% block page_title %}📊 Dashboard{% endblock %}
+{% block page_title %}📊 Dashboard Administrativo{% endblock %}
 {% block topbar_actions %}
-  <a href="{{ url_for('reservar') }}" class="btn btn-primary btn-sm">📅 Nueva Cita</a>
+  <a href="{{ url_for('lista_usuarios') }}" class="btn btn-success btn-sm">➕ Nuevo Usuario</a>
 {% endblock %}
 
 {% block content %}
@@ -29,33 +29,89 @@
   </div>
 </div>
 
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; flex-wrap:wrap;">
+<div style="display:grid; grid-template-columns:2fr 1fr; gap:1.25rem; flex-wrap:wrap; margin-bottom:1.25rem;">
+  <!-- GRÁFICO DE CITAS -->
   <div class="card">
-    <h3 class="card-title">🚀 Acciones Rápidas</h3>
-    <div style="display:flex;flex-direction:column;gap:.75rem;">
-      <a href="{{ url_for('registro_paciente') }}" class="btn btn-navy" style="justify-content:center;">🧑‍⚕️ Registrar Nuevo Paciente</a>
-      <a href="{{ url_for('reservar') }}" class="btn btn-primary" style="justify-content:center;">📅 Reservar Cita Médica</a>
-      <a href="{{ url_for('consulta_cita') }}" class="btn btn-secondary" style="justify-content:center;">🔍 Consultar Cita por Documento</a>
-      {% if session.rol == 'Administrador' %}
-      <a href="{{ url_for('todas_citas') }}" class="btn btn-warning" style="justify-content:center;">🗓️ Ver Todas las Citas</a>
-      {% endif %}
+    <h3 class="card-title">📈 Estadísticas de Citas Médicas</h3>
+    
+    <!-- FILTROS -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--gray-light);">
+      <div>
+        <label for="filtro-tipo-cita" style="font-size: 0.9rem; font-weight: 600; color: var(--gray); display: block; margin-bottom: 0.5rem;">Tipo de Cita:</label>
+        <select id="filtro-tipo-cita" style="width: 100%; padding: 0.5rem; border: 1px solid var(--gray-light); border-radius: 4px; font-size: 0.9rem;">
+          <option value="">-- Todas --</option>
+          <option value="General">General</option>
+          <option value="Odontología">Odontología</option>
+          <option value="Especialista">Especialista</option>
+        </select>
+      </div>
+      <div>
+        <label for="filtro-doctor" style="font-size: 0.9rem; font-weight: 600; color: var(--gray); display: block; margin-bottom: 0.5rem;">Doctor:</label>
+        <select id="filtro-doctor" style="width: 100%; padding: 0.5rem; border: 1px solid var(--gray-light); border-radius: 4px; font-size: 0.9rem;">
+          <option value="">-- Todos --</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- CANVAS PARA CHART.JS -->
+    <div style="position: relative; height: 300px; margin-bottom: 1rem;">
+      <canvas id="chartCitas"></canvas>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--gray-light);">
+      <div style="text-align: center;">
+        <div style="font-size: 1.5rem; font-weight: 700; color: #ff9800;" id="stat-pendiente">0</div>
+        <div style="font-size: 0.85rem; color: var(--gray);">Pendientes</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 1.5rem; font-weight: 700; color: #4caf50;" id="stat-confirmada">0</div>
+        <div style="font-size: 0.85rem; color: var(--gray);">Confirmadas</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 1.5rem; font-weight: 700; color: #f44336;" id="stat-cancelada">0</div>
+        <div style="font-size: 0.85rem; color: var(--gray);">Canceladas</div>
+      </div>
     </div>
   </div>
 
+  <!-- ACCIONES RÁPIDAS -->
   <div class="card">
-    <h3 class="card-title">ℹ️ Información del Sistema</h3>
-    <div style="display:flex;flex-direction:column;gap:.75rem;font-size:.9rem;color:var(--gray);">
+    <h3 class="card-title">⚡ Acciones Rápidas</h3>
+    <div style="display:flex;flex-direction:column;gap:.75rem;">
+      <a href="{{ url_for('lista_usuarios') }}" class="btn btn-navy" style="justify-content:center; font-size: 0.9rem;">👤 Géstionar Usuarios</a>
+      <a href="{{ url_for('lista_pacientes') }}" class="btn btn-primary" style="justify-content:center; font-size: 0.9rem;">🧑‍⚕️ Géstionar Pacientes</a>
+      <a href="{{ url_for('lista_medicos') }}" class="btn btn-secondary" style="justify-content:center; font-size: 0.9rem;">👨‍⚕️ Géstionar Médicos</a>
+      <a href="{{ url_for('todas_citas') }}" class="btn btn-warning" style="justify-content:center; font-size: 0.9rem;">🗓️ Ver Todas las Citas</a>
+    </div>
+  </div>
+</div>
+
+<!-- INFORMACIÓN MEDILOGIX -->
+<div class="card">
+  <h3 class="card-title">🏥 Sistema MEDILOGIX</h3>
+  <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:2rem;">
+    <div style="display:flex;flex-direction:column;gap:1rem;font-size:.9rem;color:var(--gray);">
       <div style="display:flex;justify-content:space-between;padding-bottom:.6rem;border-bottom:1px solid var(--gray-light);">
-        <span>Usuario activo</span>
-        <strong style="color:var(--navy);">{{ session.username }}</strong>
+        <span>Empresa</span>
+        <strong style="color:var(--navy);">MEDILOGIX</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-bottom:.6rem;border-bottom:1px solid var(--gray-light);">
+        <span>Ubicación</span>
+        <strong style="color:var(--navy);">Barranquilla, Colombia</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-bottom:.6rem;border-bottom:1px solid var(--gray-light);">
+        <span>Red de Hospitales</span>
+        <strong style="color:var(--navy);">Múltiples Sedes</strong>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:1rem;font-size:.9rem;color:var(--gray);">
+      <div style="display:flex;justify-content:space-between;padding-bottom:.6rem;border-bottom:1px solid var(--gray-light);">
+        <span>Plataforma</span>
+        <strong style="color:var(--navy);">2026</strong>
       </div>
       <div style="display:flex;justify-content:space-between;padding-bottom:.6rem;border-bottom:1px solid var(--gray-light);">
         <span>Rol</span>
         <span class="badge badge-teal">{{ session.rol }}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding-bottom:.6rem;border-bottom:1px solid var(--gray-light);">
-        <span>Programa</span>
-        <strong style="color:var(--navy);">ADSO19 – SENA</strong>
       </div>
       <div style="display:flex;justify-content:space-between;">
         <span>Tecnologías</span>
@@ -64,4 +120,93 @@
     </div>
   </div>
 </div>
+
+<!-- SCRIPT PARA CHART.JS Y FILTROS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  let chart = null;
+
+  // Obtener médicos disponibles
+  fetch('{{ url_for("lista_medicos") }}')
+    .then(response => response.text())
+    .then(html => {
+      // Parsear HTML para obtener médicos (esto es un workaround simple)
+      console.log('Médicos cargados');
+    });
+
+  // Función para actualizar el gráfico
+  function actualizarGrafico() {
+    const tipoCita = document.getElementById('filtro-tipo-cita').value;
+    const medicoId = document.getElementById('filtro-doctor').value;
+    
+    let url = '{{ url_for("api_estadisticas_filtradas") }}';
+    if (tipoCita) url += `?tipo_cita=${tipoCita}`;
+    if (medicoId) url += `${tipoCita ? '&' : '?'}medico_id=${medicoId}`;
+    
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        // Actualizar números
+        document.getElementById('stat-pendiente').textContent = data.Pendiente || 0;
+        document.getElementById('stat-confirmada').textContent = data.Confirmada || 0;
+        document.getElementById('stat-cancelada').textContent = data.Cancelada || 0;
+        
+        // Destruir gráfico anterior si existe
+        if (chart) {
+          chart.destroy();
+        }
+        
+        // Crear nuevo gráfico
+        const ctx = document.getElementById('chartCitas').getContext('2d');
+        chart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Pendientes', 'Confirmadas', 'Canceladas'],
+            datasets: [{
+              label: 'Cantidad de Citas',
+              data: [data.Pendiente || 0, data.Confirmada || 0, data.Cancelada || 0],
+              backgroundColor: [
+                'rgba(255, 152, 0, 0.8)',  // Naranja para pendientes
+                'rgba(76, 175, 80, 0.8)',   // Verde para confirmadas
+                'rgba(244, 67, 54, 0.8)'    // Rojo para canceladas
+              ],
+              borderColor: [
+                'rgba(255, 152, 0, 1)',
+                'rgba(76, 175, 80, 1)',
+                'rgba(244, 67, 54, 1)'
+              ],
+              borderWidth: 1,
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true,
+                position: 'bottom'
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1
+                }
+              }
+            }
+          }
+        });
+      })
+      .catch(error => console.error('Error:', error));
+  }
+  
+  // Listeners para filtros
+  document.getElementById('filtro-tipo-cita').addEventListener('change', actualizarGrafico);
+  document.getElementById('filtro-doctor').addEventListener('change', actualizarGrafico);
+  
+  // Cargar gráfico inicial
+  actualizarGrafico();
+</script>
 {% endblock %}

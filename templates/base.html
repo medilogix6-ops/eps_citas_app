@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>{% block title %}EPS Citas{% endblock %} — Sistema de Citas Médicas</title>
+  <title>{% block title %}MEDILOGIX{% endblock %} — Sistema de Citas Médicas</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏥</text></svg>"/>
 </head>
@@ -13,7 +13,7 @@
   <aside class="sidebar">
     <div class="sidebar-logo">
       <a href="{{ url_for('dashboard') }}">
-        <span class="pulse"></span> EPS Citas
+        <span class="pulse"></span> MEDILOGIX
       </a>
     </div>
 
@@ -32,19 +32,16 @@
 
       <li class="section-label">Gestión</li>
       <li><a href="{{ url_for('lista_pacientes') }}" {% if 'paciente' in request.endpoint %}class="active"{% endif %}>🧑‍⚕️ Pacientes</a></li>
-      {% endif %}
-
-      <li class="section-label">{% if session.get('rol') == 'Administrador' %}Citas{% else %}Menú{% endif %}</li>
-      {% if session.get('rol') == 'Paciente' %}
-      <li><a href="{{ url_for('perfil_paciente') }}" {% if request.endpoint=='perfil_paciente' %}class="active"{% endif %}>👤 Mi Perfil</a></li>
-      {% endif %}
-      <li><a href="{{ url_for('reservar') }}" {% if request.endpoint=='reservar' %}class="active"{% endif %}>📅 Reservar Cita</a></li>
-
-      {% if session.get('rol') == 'Administrador' %}
-      <li class="section-label">Administración</li>
-      <li><a href="{{ url_for('todas_citas') }}" {% if request.endpoint=='todas_citas' %}class="active"{% endif %}>🗓️ Todas las Citas</a></li>
-      <li><a href="{{ url_for('lista_medicos') }}" {% if 'medico' in request.endpoint %}class="active"{% endif %}>👨‍⚕️ Médicos</a></li>
       <li><a href="{{ url_for('lista_usuarios') }}" {% if 'usuario' in request.endpoint %}class="active"{% endif %}>👤 Usuarios</a></li>
+      <li><a href="{{ url_for('lista_medicos') }}" {% if 'medico' in request.endpoint %}class="active"{% endif %}>👨‍⚕️ Médicos</a></li>
+
+      <li class="section-label">Citas Médicas</li>
+      <li><a href="{{ url_for('todas_citas') }}" {% if request.endpoint=='todas_citas' %}class="active"{% endif %}>🗓️ Todas las Citas</a></li>
+
+      {% else %}
+      <li class="section-label">Menú</li>
+      <li><a href="{{ url_for('perfil_paciente') }}" {% if request.endpoint=='perfil_paciente' %}class="active"{% endif %}>👤 Mi Perfil</a></li>
+      <li><a href="{{ url_for('reservar') }}" {% if request.endpoint=='reservar' %}class="active"{% endif %}>📅 Reservar Cita</a></li>
       {% endif %}
     </ul>
 
@@ -76,7 +73,7 @@
 
     <main class="content">{% block content %}{% endblock %}</main>
 
-    <footer>Sistema de Gestión de Citas Médicas &mdash; ADSO19 SENA &copy; 2025</footer>
+    <footer>MEDILOGIX © 2026 - Red de Salud Integral &mdash; Barranquilla, Colombia</footer>
   </div>
 
   <script>

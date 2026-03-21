@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Crear Usuario{% endblock %}
+{% block page_title %}➕ Crear Nuevo Usuario{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+  <div class="card">
+    <form method="POST">
+      <div class="form-group">
+        <label for="username">Nombre de Usuario <span style="color: red;">*</span></label>
+        <input type="text" id="username" name="username" placeholder="usuario123" required autofocus/>
+      </div>
+
+      <div class="form-group">
+        <label for="correo">Correo Electrónico <span style="color: red;">*</span></label>
+        <input type="email" id="correo" name="correo" placeholder="usuario@example.com" required/>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Contraseña <span style="color: red;">*</span></label>
+        <input type="password" id="password" name="password" placeholder="••••••••" required/>
+        <small style="color: #999; display: block; margin-top: 0.3rem;">Mínimo 6 caracteres</small>
+      </div>
+
+      <div class="form-group">
+        <label for="rol_id">Rol <span style="color: red;">*</span></label>
+        <select id="rol_id" name="rol_id" required>
+          <option value="2">Paciente</option>
+          <option value="1">Administrador</option>
+          <option value="3">Médico</option>
+        </select>
+      </div>
+
+      <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+        <a href="{{ url_for('lista_usuarios') }}" class="btn btn-secondary" style="flex: 1; justify-content: center;">← Atrás</a>
+        <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">✅ Crear Usuario</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
