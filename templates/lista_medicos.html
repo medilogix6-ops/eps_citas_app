@@ -23,6 +23,7 @@
               <th>#</th>
               <th>Nombre</th>
               <th>Especialidad</th>
+              <th>Dirección</th>
               <th>Acción</th>
             </tr>
           </thead>
@@ -32,6 +33,7 @@
               <td style="color:var(--gray);font-size:.8rem;">{{ m.id }}</td>
               <td><strong>{{ m.nombre }}</strong></td>
               <td><span class="badge badge-teal">{{ m.especialidad }}</span></td>
+              <td>{{ m.direccion if m.direccion else '—' }}</td>
               <td>
                 <form method="POST" action="{{ url_for('eliminar_medico_view', mid=m.id) }}"
                       onsubmit="return confirm('¿Eliminar al Dr. {{ m.nombre }}?')">
@@ -60,7 +62,7 @@
         <label>Nombre completo *</label>
         <input type="text" name="nombre" placeholder="Ej: Dr. Pedro Sánchez" required/>
       </div>
-      <div class="form-group" style="margin-bottom:1.25rem;">
+      <div class="form-group" style="margin-bottom:.9rem;">
         <label>Especialidad *</label>
         <select name="especialidad" required>
           <option value="">— Seleccione —</option>
@@ -70,6 +72,10 @@
             <option>{{ esp }}</option>
           {% endfor %}
         </select>
+      </div>
+      <div class="form-group" style="margin-bottom:1.25rem;">
+        <label>Dirección</label>
+        <input type="text" name="direccion" placeholder="Ej: Cra 7 # 32-16, Bogotá"/>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
         ✅ Agregar Médico

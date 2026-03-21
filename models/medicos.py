@@ -5,20 +5,20 @@ def listar_medicos():
     conn = get_connection()
     cur  = conn.cursor(dictionary=True)
     try:
-        cur.execute("SELECT id, nombre, especialidad FROM medicos ORDER BY nombre")
+        cur.execute("SELECT id, nombre, especialidad, direccion FROM medicos ORDER BY nombre")
         return cur.fetchall()
     finally:
         cur.close()
         conn.close()
 
 
-def agregar_medico(nombre, especialidad):
+def agregar_medico(nombre, especialidad, direccion=''):
     conn = get_connection()
     cur  = conn.cursor()
     try:
         cur.execute(
-            "INSERT INTO medicos (nombre, especialidad) VALUES (%s, %s)",
-            (nombre, especialidad)
+            "INSERT INTO medicos (nombre, especialidad, direccion) VALUES (%s, %s, %s)",
+            (nombre, especialidad, direccion if direccion else None)
         )
         conn.commit()
         return True, "Médico agregado."

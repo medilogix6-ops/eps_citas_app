@@ -391,8 +391,9 @@ def lista_medicos():
 def agregar_medico_view():
     nom  = request.form.get('nombre','').strip()
     esp  = request.form.get('especialidad','').strip()
+    dir  = request.form.get('direccion','').strip()
     if nom and esp:
-        ok, msg = agregar_medico(nom, esp)
+        ok, msg = agregar_medico(nom, esp, dir)
         flash(msg, 'success' if ok else 'error')
     else:
         flash('Nombre y especialidad son obligatorios.', 'error')
