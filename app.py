@@ -8,21 +8,37 @@ from flask import (Flask, render_template, request, redirect,
 from functools import wraps
 from config import Config
 from database import init_db
-from models.usuarios  import (
+from models.usuarios import (
     login,
     registrar_usuario,
+    crear_usuario_medico,
     listar_usuarios,
+    listar_roles,
     obtener_usuario_por_id,
+    obtener_rol_id_por_nombre,
     actualizar_usuario,
     toggle_activo,
 )
 from models.pacientes import registrar_paciente, existe_paciente, obtener_todos, actualizar_paciente
-from models.medicos   import listar_medicos, agregar_medico, eliminar_medico
-from models.citas     import (reservar_cita, obtener_citas_paciente,
-                              obtener_todas_citas, obtener_cita_por_id,
-                              actualizar_cita, eliminar_cita, estadisticas,
-                              obtener_medicos_por_tipo, obtener_fechas_disponibles,
-                              obtener_info_paciente)
+from models.medicos import listar_medicos, obtener_medico_por_id
+from models.citas import (
+    reservar_cita,
+    obtener_citas_paciente,
+    obtener_todas_citas,
+    obtener_cita_por_id,
+    actualizar_cita,
+    eliminar_cita,
+    estadisticas,
+    obtener_medicos_por_tipo,
+    obtener_fechas_disponibles,
+    obtener_info_paciente,
+    obtener_citas_por_medico,
+    obtener_cita_por_id_para_medico,
+    obtener_citas_paciente_para_medico,
+    obtener_historial_clinico_paciente_medico,
+    obtener_pacientes_atendidos_por_medico,
+    registrar_atencion_medica,
+)
 
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
@@ -61,15 +77,31 @@ def admin_required(f):
         if 'user_id' not in session:
             flash('Debes iniciar sesión.', 'error')
             return redirect(url_for('login_view'))
-        
+
         if session.get('rol') != 'Administrador':
             flash('Acceso restringido a administradores.', 'error')
-            # Redirige a un lugar seguro según el rol
             if session.get('rol') == 'Paciente':
                 return redirect(url_for('perfil_paciente'))
-            else:
-                return redirect(url_for('portal'))
-        
+            if session.get('rol') == 'Medico':
+                return redirect(url_for('dashboard_medico'))
+            return redirect(url_for('portal'))
+
+        return f(*args, **kwargs)
+    return decorated
+
+
+def doctor_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Debes iniciar sesión.', 'error')
+            return redirect(url_for('login_view'))
+        if session.get('rol') != 'Medico':
+            flash('Acceso restringido a médicos.', 'error')
+            return redirect(url_for('portal'))
+        if not session.get('medico_id'):
+            flash('Tu cuenta no está vinculada a un perfil médico. Contacta al administrador.', 'error')
+            return redirect(url_for('logout'))
         return f(*args, **kwargs)
     return decorated
 
@@ -81,8 +113,9 @@ def portal():
     if 'user_id' in session:
         if session.get('rol') == 'Administrador':
             return redirect(url_for('dashboard'))
-        else:
-            return redirect(url_for('perfil_paciente'))
+        if session.get('rol') == 'Medico':
+            return redirect(url_for('dashboard_medico'))
+        return redirect(url_for('perfil_paciente'))
     return render_template('portal.html')
 
 # ──────────────────────────────────────────────
@@ -93,8 +126,9 @@ def index():
     if 'user_id' in session:
         if session.get('rol') == 'Administrador':
             return redirect(url_for('dashboard'))
-        else:
-            return redirect(url_for('perfil_paciente'))
+        if session.get('rol') == 'Medico':
+            return redirect(url_for('dashboard_medico'))
+        return redirect(url_for('perfil_paciente'))
     return redirect(url_for('portal'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -116,7 +150,8 @@ def login_view():
             session['username'] = user['username']
             session['correo'] = user.get('correo', '')
             session['rol'] = user['rol']
-            
+            session['medico_id'] = user.get('medico_id')
+
             # Si es paciente, buscar su documento
             if user['rol'] == 'Paciente':
                 from database import get_connection
@@ -137,11 +172,11 @@ def login_view():
             
             flash(f'Bienvenido, {user["username"]} 👋', 'success')
             
-            # Redirigir según el rol
             if user['rol'] == 'Administrador':
                 return redirect(url_for('dashboard'))
-            else:
-                return redirect(url_for('perfil_paciente'))
+            if user['rol'] == 'Medico':
+                return redirect(url_for('dashboard_medico'))
+            return redirect(url_for('perfil_paciente'))
         
         flash('Usuario o contraseña incorrectos.', 'error')
     
@@ -153,6 +188,8 @@ def registro_portal():
     if 'user_id' in session:
         if session.get('rol') == 'Administrador':
             return redirect(url_for('dashboard'))
+        if session.get('rol') == 'Medico':
+            return redirect(url_for('dashboard_medico'))
         return redirect(url_for('perfil_paciente'))
     
     if request.method == 'POST':
@@ -202,10 +239,12 @@ def logout():
 @login_required
 def perfil_paciente():
     """Perfil del paciente con su información y citas"""
-    # Si es administrador, no puede acceder
     if session.get('rol') == 'Administrador':
         flash('Esta página es solo para pacientes.', 'error')
         return redirect(url_for('dashboard'))
+    if session.get('rol') == 'Medico':
+        flash('Esta página es solo para pacientes.', 'error')
+        return redirect(url_for('dashboard_medico'))
     
     # Obtener documento del paciente
     doc = session.get('documento_paciente')
@@ -309,12 +348,12 @@ def api_estadisticas_filtradas():
         
         cur.execute(query, params)
         resultados = cur.fetchall()
-        
-        # Crear diccionario con estados como claves
+
         stats = {
             'Pendiente': 0,
             'Confirmada': 0,
-            'Cancelada': 0
+            'Cancelada': 0,
+            'Atendida': 0,
         }
         
         for row in resultados:
@@ -378,33 +417,13 @@ def editar_paciente(documento):
     return render_template('editar_paciente.html', pac=pac)
 
 # ──────────────────────────────────────────────
-#  MÉDICOS  (solo admin)
+#  MÉDICOS — gestión desde Usuarios (sin pantalla dedicada)
 # ──────────────────────────────────────────────
 @app.route('/medicos')
 @admin_required
-def lista_medicos():
-    medicos = listar_medicos()
-    return render_template('lista_medicos.html', medicos=medicos)
-
-@app.route('/medicos/agregar', methods=['POST'])
-@admin_required
-def agregar_medico_view():
-    nom  = request.form.get('nombre','').strip()
-    esp  = request.form.get('especialidad','').strip()
-    dir  = request.form.get('direccion','').strip()
-    if nom and esp:
-        ok, msg = agregar_medico(nom, esp, dir)
-        flash(msg, 'success' if ok else 'error')
-    else:
-        flash('Nombre y especialidad son obligatorios.', 'error')
-    return redirect(url_for('lista_medicos'))
-
-@app.route('/medicos/eliminar/<int:mid>', methods=['POST'])
-@admin_required
-def eliminar_medico_view(mid):
-    ok, msg = eliminar_medico(mid)
-    flash(msg, 'success' if ok else 'error')
-    return redirect(url_for('lista_medicos'))
+def lista_medicos_redirect():
+    flash('Los médicos se gestionan desde Usuarios: cree un usuario con rol Médico.', 'success')
+    return redirect(url_for('lista_usuarios'))
 
 # ──────────────────────────────────────────────
 #  CITAS
@@ -418,6 +437,12 @@ def todas_citas():
 @app.route('/citas/reservar', methods=['GET', 'POST'])
 @login_required
 def reservar():
+    if session.get('rol') == 'Medico':
+        return redirect(url_for('dashboard_medico'))
+    if session.get('rol') == 'Administrador':
+        flash('Los administradores no reservan citas como paciente.', 'error')
+        return redirect(url_for('dashboard'))
+
     pac_doc = session.get('documento_paciente')
     
     if request.method == 'POST':
@@ -438,7 +463,10 @@ def reservar():
 @app.route('/citas/consulta', methods=['GET', 'POST'])
 @login_required
 def consulta_cita():
-    citas     = []
+    if session.get('rol') == 'Medico':
+        return redirect(url_for('dashboard_medico'))
+
+    citas = []
     documento = ''
     if request.method == 'POST':
         documento = request.form.get('documento','').strip()
@@ -450,7 +478,10 @@ def consulta_cita():
 @app.route('/citas/actualizar/<int:cita_id>', methods=['GET', 'POST'])
 @login_required
 def actualizar(cita_id):
-    cita    = obtener_cita_por_id(cita_id)
+    if session.get('rol') == 'Medico':
+        return redirect(url_for('dashboard_medico'))
+
+    cita = obtener_cita_por_id(cita_id)
     medicos = listar_medicos()
     if not cita:
         flash('Cita no encontrada.', 'error')
@@ -473,6 +504,10 @@ def actualizar(cita_id):
 @app.route('/citas/eliminar/<int:cita_id>', methods=['POST'])
 @login_required
 def eliminar(cita_id):
+    if session.get('rol') == 'Medico':
+        flash('No autorizado.', 'error')
+        return redirect(url_for('dashboard_medico'))
+
     ok, msg = eliminar_cita(cita_id)
     flash(msg, 'success' if ok else 'error')
     return redirect(url_for('consulta_cita'))
@@ -489,22 +524,51 @@ def lista_usuarios():
 @app.route('/usuarios/crear', methods=['GET', 'POST'])
 @admin_required
 def crear_usuario():
-    """Crear nuevo usuario desde el admin"""
+    """Crear nuevo usuario desde el admin (incluye médicos con hospital y especialidad)."""
+    roles = listar_roles()
+    medico_rol_id = obtener_rol_id_por_nombre('Medico')
+
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         correo = request.form.get('correo', '').strip()
         password = request.form.get('password', '').strip()
         rol_id = int(request.form.get('rol_id', 2))
-        
+
         if not all([username, correo, password]):
             flash('Usuario, correo y contraseña son obligatorios.', 'error')
+        elif medico_rol_id and rol_id == medico_rol_id:
+            nombre_med = request.form.get('medico_nombre', '').strip()
+            especialidad = request.form.get('especialidad', '').strip()
+            tipo_cita = request.form.get('tipo_cita', 'General').strip()
+            if not nombre_med or not especialidad:
+                flash('Nombre y especialidad del médico son obligatorios.', 'error')
+            elif tipo_cita not in ('General', 'Odontología', 'Especialista'):
+                flash('Tipo de cita no válido.', 'error')
+            else:
+                ok, msg = crear_usuario_medico(
+                    username,
+                    correo,
+                    password,
+                    nombre_med,
+                    especialidad,
+                    tipo_cita,
+                    Config.MEDICO_HOSPITAL_DEFAULT,
+                )
+                flash(msg, 'success' if ok else 'error')
+                if ok:
+                    return redirect(url_for('lista_usuarios'))
         else:
             ok, msg = registrar_usuario(username, correo, password, rol_id)
             flash(msg, 'success' if ok else 'error')
             if ok:
                 return redirect(url_for('lista_usuarios'))
-    
-    return render_template('crear_usuario.html')
+
+    return render_template(
+        'crear_usuario.html',
+        roles=roles,
+        medico_rol_id=medico_rol_id,
+        hospital_default=Config.MEDICO_HOSPITAL_DEFAULT,
+    )
 
 @app.route('/usuarios/editar/<int:uid>', methods=['GET', 'POST'])
 @admin_required
@@ -514,21 +578,36 @@ def editar_usuario(uid):
         flash('Usuario no encontrado.', 'error')
         return redirect(url_for('lista_usuarios'))
 
+    medico_rol_id = obtener_rol_id_por_nombre('Medico')
+
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
-        correo   = request.form.get('correo', '').strip()
-        rol_id   = int(request.form.get('rol_id', user['rol_id']))
+        correo = request.form.get('correo', '').strip()
+        rol_id = int(request.form.get('rol_id', user['rol_id']))
         password = request.form.get('password', '').strip()
 
         if not username or not correo:
             flash('Usuario y correo son obligatorios.', 'error')
         else:
-            ok, msg = actualizar_usuario(uid, username, correo, rol_id, password or None)
+            limpiar = (
+                medico_rol_id is not None
+                and user.get('rol_id') == medico_rol_id
+                and rol_id != medico_rol_id
+            )
+            ok, msg = actualizar_usuario(
+                uid, username, correo, rol_id, password or None, limpiar_medico_id=limpiar
+            )
             flash(msg, 'success' if ok else 'error')
             if ok:
                 return redirect(url_for('lista_usuarios'))
 
-    return render_template('editar_usuario.html', user=user)
+    return render_template(
+        'editar_usuario.html',
+        user=user,
+        roles=listar_roles(),
+        medico_rol_id=medico_rol_id,
+        hospital_default=Config.MEDICO_HOSPITAL_DEFAULT,
+    )
 
 
 @app.route('/usuarios/toggle/<int:uid>', methods=['POST'])
@@ -537,6 +616,82 @@ def toggle_usuario(uid):
     toggle_activo(uid)
     flash('Estado del usuario actualizado.', 'success')
     return redirect(url_for('lista_usuarios'))
+
+
+# ──────────────────────────────────────────────
+#  PANEL MÉDICO
+# ──────────────────────────────────────────────
+@app.route('/medico')
+@login_required
+@doctor_required
+def dashboard_medico():
+    mid = session['medico_id']
+    medico = obtener_medico_por_id(mid)
+    citas = obtener_citas_por_medico(mid)
+    return render_template(
+        'medico_dashboard.html',
+        medico=medico,
+        citas=citas,
+    )
+
+
+@app.route('/medico/paciente/<documento>')
+@login_required
+@doctor_required
+def medico_ver_paciente(documento):
+    mid = session['medico_id']
+    pac = obtener_info_paciente(documento)
+    if not pac:
+        flash('Paciente no encontrado.', 'error')
+        return redirect(url_for('dashboard_medico'))
+
+    citas_hist = obtener_citas_paciente_para_medico(documento, mid)
+    historial = obtener_historial_clinico_paciente_medico(documento, mid)
+    return render_template(
+        'medico_paciente.html',
+        paciente=pac,
+        citas_hist=citas_hist,
+        historial=historial,
+    )
+
+
+@app.route('/medico/pacientes-atendidos')
+@login_required
+@doctor_required
+def medico_pacientes_atendidos():
+    mid = session['medico_id']
+    pacientes = obtener_pacientes_atendidos_por_medico(mid)
+    return render_template('medico_pacientes_atendidos.html', pacientes=pacientes)
+
+
+@app.route('/medico/cita/<int:cita_id>', methods=['GET', 'POST'])
+@login_required
+@doctor_required
+def medico_atender_cita(cita_id):
+    mid = session['medico_id']
+    cita = obtener_cita_por_id_para_medico(cita_id, mid)
+    if not cita:
+        flash('Cita no encontrada o no está asignada a usted.', 'error')
+        return redirect(url_for('dashboard_medico'))
+
+    if request.method == 'POST':
+        notas = request.form.get('notas', '').strip()
+        if not notas:
+            flash('Ingrese las notas de la historia clínica (control).', 'error')
+        else:
+            ok, msg = registrar_atencion_medica(
+                cita_id,
+                mid,
+                cita['documento'],
+                notas,
+                request.form.get('tipo', 'Control') or 'Control',
+            )
+            flash(msg, 'success' if ok else 'error')
+            if ok:
+                return redirect(url_for('dashboard_medico'))
+
+    return render_template('medico_atender_cita.html', cita=cita)
+
 
 # ──────────────────────────────────────────────
 #  SESIONES Y CACHÉ

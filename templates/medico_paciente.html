@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Paciente{% endblock %}
+{% block page_title %}🧑‍⚕️ Datos del paciente{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('dashboard_medico') }}" class="btn btn-secondary btn-sm">← Volver a citas</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:900px;">
+  <h3 class="card-title">📋 Información</h3>
+  <div class="info-grid">
+    <div class="info-item"><label>Documento</label><p>{{ paciente.documento }}</p></div>
+    <div class="info-item"><label>Nombre</label><p>{{ paciente.nombre }} {{ paciente.apellido }}</p></div>
+    <div class="info-item"><label>Teléfono</label><p>{{ paciente.telefono or '—' }}</p></div>
+    <div class="info-item"><label>Correo</label><p>{{ paciente.correo or '—' }}</p></div>
+    <div class="info-item"><label>EPS</label><p>{{ paciente.eps or '—' }}</p></div>
+  </div>
+</div>
+
+<div class="card" style="max-width:900px;margin-top:1.25rem;">
+  <h3 class="card-title">📅 Citas con usted</h3>
+  {% if citas_hist %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Hora</th>
+          <th>Tipo</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in citas_hist %}
+        <tr>
+          <td>{{ c.fecha.strftime('%d/%m/%Y') if c.fecha else '—' }}</td>
+          <td>{{ c.hora or '—' }}</td>
+          <td>{{ c.tipo_cita }}</td>
+          <td>{{ c.estado }}</td>
+          <td>
+            {% if c.estado != 'Cancelada' and c.estado != 'Atendida' %}
+            <a class="btn btn-xs btn-primary" href="{{ url_for('medico_atender_cita', cita_id=c.cita_id) }}">Atender</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="color:var(--gray);">Sin citas registradas con usted para este paciente.</p>
+  {% endif %}
+</div>
+
+<div class="card" style="max-width:900px;margin-top:1.25rem;">
+  <h3 class="card-title">📝 Historia clínica (controles)</h3>
+  {% if historial %}
+  <ul style="list-style:none;padding:0;margin:0;">
+    {% for h in historial %}
+    <li style="border-bottom:1px solid var(--gray-light);padding:.85rem 0;">
+      <div style="font-size:.8rem;color:var(--gray);">{{ h.created_at.strftime('%d/%m/%Y %H:%M') if h.created_at else '' }} · {{ h.tipo }}</div>
+      <p style="margin:.4rem 0 0;white-space:pre-wrap;">{{ h.notas }}</p>
+      {% if h.cita_fecha %}<div style="font-size:.78rem;color:var(--gray);margin-top:.35rem;">Cita: {{ h.cita_fecha.strftime('%d/%m/%Y') }}</div>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p style="color:var(--gray);">Aún no hay registros de historia clínica con usted para este paciente.</p>
+  {% endif %}
+</div>
+{% endblock %}

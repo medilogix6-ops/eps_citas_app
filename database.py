@@ -2,6 +2,92 @@ import mysql.connector
 from config import Config
 
 
+def _migrate_legacy_schema(cur, conn):
+    """Actualiza esquemas creados antes del rol Médico e historia clínica."""
+    cur.execute("SELECT DATABASE()")
+    row = cur.fetchone()
+    db = row[0] if row else None
+    if not db:
+        return
+
+    try:
+        cur.execute(
+            """
+            SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'usuarios' AND COLUMN_NAME = 'medico_id'
+            """,
+            (db,),
+        )
+        if cur.fetchone()[0] == 0:
+            cur.execute(
+                """
+                ALTER TABLE usuarios
+                ADD COLUMN medico_id INT NULL,
+                ADD UNIQUE KEY uq_usuario_medico_id (medico_id)
+                """
+            )
+            cur.execute(
+                """
+                ALTER TABLE usuarios
+                ADD CONSTRAINT fk_usuario_medico
+                FOREIGN KEY (medico_id) REFERENCES medicos(id)
+                ON UPDATE CASCADE ON DELETE SET NULL
+                """
+            )
+    except Exception as e:
+        print(f"migrate usuarios.medico_id: {e}")
+
+    try:
+        cur.execute("SELECT COUNT(*) FROM roles WHERE nombre = 'Medico'")
+        if cur.fetchone()[0] == 0:
+            cur.execute(
+                """
+                INSERT INTO roles (nombre, descripcion) VALUES
+                ('Medico', 'Atender citas y consultar pacientes asignados')
+                """
+            )
+    except Exception as e:
+        print(f"migrate rol Medico: {e}")
+
+    try:
+        cur.execute(
+            """
+            ALTER TABLE citas MODIFY COLUMN estado
+            ENUM('Pendiente','Confirmada','Cancelada','Atendida') DEFAULT 'Pendiente'
+            """
+        )
+    except Exception as e:
+        print(f"migrate citas.estado: {e}")
+
+    try:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS historia_clinica (
+                id          INT AUTO_INCREMENT PRIMARY KEY,
+                cita_id     INT NOT NULL,
+                medico_id   INT NOT NULL,
+                documento   VARCHAR(15) NOT NULL,
+                notas       TEXT NOT NULL,
+                tipo        VARCHAR(50) DEFAULT 'Control',
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_hist_cita
+                    FOREIGN KEY (cita_id) REFERENCES citas(id)
+                    ON UPDATE CASCADE ON DELETE CASCADE,
+                CONSTRAINT fk_hist_medico
+                    FOREIGN KEY (medico_id) REFERENCES medicos(id)
+                    ON UPDATE CASCADE ON DELETE RESTRICT,
+                CONSTRAINT fk_hist_paciente
+                    FOREIGN KEY (documento) REFERENCES pacientes(documento)
+                    ON UPDATE CASCADE ON DELETE RESTRICT
+            );
+            """
+        )
+    except Exception as e:
+        print(f"migrate historia_clinica: {e}")
+
+    conn.commit()
+
+
 def get_connection():
     return mysql.connector.connect(
         host=Config.MYSQL_HOST,
@@ -37,7 +123,7 @@ def init_db():
     )
     cur.execute(f"USE `{Config.MYSQL_DB}`;")
 
-    # --- 2. Tablas ---
+    # --- 2. Tablas (medicos antes que usuarios por FK medico_id) ---
     cur.execute("""
         CREATE TABLE IF NOT EXISTS roles (
             id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -48,18 +134,34 @@ def init_db():
     """)
 
     cur.execute("""
+        CREATE TABLE IF NOT EXISTS medicos (
+            id           INT AUTO_INCREMENT PRIMARY KEY,
+            nombre       VARCHAR(120) NOT NULL,
+            especialidad VARCHAR(80)  NOT NULL,
+            tipo_cita    ENUM('General','Odontología','Especialista') NOT NULL DEFAULT 'General',
+            direccion    VARCHAR(150),
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS usuarios (
             id         INT AUTO_INCREMENT PRIMARY KEY,
             username   VARCHAR(60)  NOT NULL UNIQUE,
             correo     VARCHAR(100) NOT NULL UNIQUE,
             password   VARCHAR(255) NOT NULL,
             rol_id     INT NOT NULL,
+            medico_id  INT NULL,
             activo     TINYINT(1) DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             CONSTRAINT fk_usuario_rol
                 FOREIGN KEY (rol_id) REFERENCES roles(id)
-                ON UPDATE CASCADE ON DELETE RESTRICT
+                ON UPDATE CASCADE ON DELETE RESTRICT,
+            CONSTRAINT fk_usuario_medico
+                FOREIGN KEY (medico_id) REFERENCES medicos(id)
+                ON UPDATE CASCADE ON DELETE SET NULL,
+            UNIQUE KEY uq_usuario_medico_id (medico_id)
         );
     """)
 
@@ -77,17 +179,6 @@ def init_db():
     """)
 
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS medicos (
-            id           INT AUTO_INCREMENT PRIMARY KEY,
-            nombre       VARCHAR(120) NOT NULL,
-            especialidad VARCHAR(80)  NOT NULL,
-            tipo_cita    ENUM('General','Odontología','Especialista') NOT NULL DEFAULT 'General',
-            direccion    VARCHAR(150),
-            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    """)
-
-    cur.execute("""
         CREATE TABLE IF NOT EXISTS citas (
             id            INT AUTO_INCREMENT PRIMARY KEY,
             documento     VARCHAR(15)  NOT NULL,
@@ -96,7 +187,7 @@ def init_db():
             fecha         DATE NOT NULL,
             hora          TIME NOT NULL,
             direccion_eps VARCHAR(150) NOT NULL,
-            estado        ENUM('Pendiente','Confirmada','Cancelada') DEFAULT 'Pendiente',
+            estado        ENUM('Pendiente','Confirmada','Cancelada','Atendida') DEFAULT 'Pendiente',
             created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             CONSTRAINT fk_cita_paciente
@@ -108,7 +199,31 @@ def init_db():
         );
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS historia_clinica (
+            id          INT AUTO_INCREMENT PRIMARY KEY,
+            cita_id     INT NOT NULL,
+            medico_id   INT NOT NULL,
+            documento   VARCHAR(15) NOT NULL,
+            notas       TEXT NOT NULL,
+            tipo        VARCHAR(50) DEFAULT 'Control',
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_hist_cita
+                FOREIGN KEY (cita_id) REFERENCES citas(id)
+                ON UPDATE CASCADE ON DELETE CASCADE,
+            CONSTRAINT fk_hist_medico
+                FOREIGN KEY (medico_id) REFERENCES medicos(id)
+                ON UPDATE CASCADE ON DELETE RESTRICT,
+            CONSTRAINT fk_hist_paciente
+                FOREIGN KEY (documento) REFERENCES pacientes(documento)
+                ON UPDATE CASCADE ON DELETE RESTRICT
+        );
+    """)
+
     conn.commit()
+
+    # --- 2b. Migraciones en bases ya existentes (sin medico_id, enum antiguo, etc.) ---
+    _migrate_legacy_schema(cur, conn)
 
     # --- 3. Seed data (solo si las tablas están vacías) ---
     cur.execute("SELECT COUNT(*) FROM roles;")
@@ -116,7 +231,8 @@ def init_db():
         cur.execute("""
             INSERT INTO roles (nombre, descripcion) VALUES
             ('Administrador', 'Acceso total al sistema'),
-            ('Paciente',      'Reservar y consultar sus citas');
+            ('Paciente',      'Reservar y consultar sus citas'),
+            ('Medico',        'Atender citas y consultar pacientes asignados');
         """)
 
         admin_hash = bcrypt.hashpw(b'Admin2025*', bcrypt.gensalt()).decode()

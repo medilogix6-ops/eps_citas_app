@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Atender cita{% endblock %}
+{% block page_title %}🩺 Atención médica{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('dashboard_medico') }}" class="btn btn-secondary btn-sm">← Volver</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:640px;margin:0 auto;">
+  <p style="color:var(--gray);margin-bottom:1rem;">
+    <strong>{{ cita.pac_nombre }} {{ cita.pac_apellido }}</strong> · Doc. {{ cita.documento }}<br/>
+    {{ cita.fecha.strftime('%d/%m/%Y') if cita.fecha else '' }} {{ cita.hora or '' }} · {{ cita.tipo_cita }}
+  </p>
+
+  {% if cita.estado == 'Atendida' %}
+  <p class="badge badge-green" style="display:inline-block;margin-bottom:1rem;">Esta cita ya fue registrada como atendida.</p>
+  {% elif cita.estado == 'Cancelada' %}
+  <p class="badge badge-red" style="display:inline-block;margin-bottom:1rem;">Cita cancelada — no se puede atender.</p>
+  {% else %}
+  <form method="POST">
+    <div class="form-group">
+      <label for="notas">Historia clínica / control <span style="color:red;">*</span></label>
+      <textarea id="notas" name="notas" rows="8" required placeholder="Describa la atención, hallazgos y recomendaciones…"></textarea>
+    </div>
+    <input type="hidden" name="tipo" value="Control"/>
+    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+      ✅ Paciente atendido y guardar historia clínica
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

@@ -49,6 +49,8 @@
           <td>
             {% if c.estado == 'Confirmada' %}
               <span class="badge badge-green">✔ {{ c.estado }}</span>
+            {% elif c.estado == 'Atendida' %}
+              <span class="badge" style="background:#e0e7ff;color:#3730a3;">✓ {{ c.estado }}</span>
             {% elif c.estado == 'Pendiente' %}
               <span class="badge badge-gold">⏳ {{ c.estado }}</span>
             {% else %}

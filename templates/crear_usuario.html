@@ -5,7 +5,7 @@
 {% block content %}
 <div style="max-width: 600px; margin: 0 auto;">
   <div class="card">
-    <form method="POST">
+    <form method="POST" id="form-usuario">
       <div class="form-group">
         <label for="username">Nombre de Usuario <span style="color: red;">*</span></label>
         <input type="text" id="username" name="username" placeholder="usuario123" required autofocus/>
@@ -25,9 +25,38 @@
       <div class="form-group">
         <label for="rol_id">Rol <span style="color: red;">*</span></label>
         <select id="rol_id" name="rol_id" required>
-          <option value="2">Paciente</option>
-          <option value="1">Administrador</option>
+          {% for r in roles %}
+          <option value="{{ r.id }}" {% if r.nombre == 'Paciente' %}selected{% endif %}>{{ r.nombre }}</option>
+          {% endfor %}
         </select>
+      </div>
+
+      <div id="bloque-medico" style="display:none;border-top:1px solid var(--gray-light);padding-top:1rem;margin-top:.5rem;">
+        <p style="font-size:.9rem;color:var(--gray);margin-bottom:1rem;">
+          Los médicos atienden en: <strong>{{ hospital_default }}</strong>
+        </p>
+        <div class="form-group">
+          <label for="medico_nombre">Nombre completo del médico <span style="color:red;">*</span></label>
+          <input type="text" id="medico_nombre" name="medico_nombre" placeholder="Ej: Dr. Pedro Sánchez"/>
+        </div>
+        <div class="form-group">
+          <label for="especialidad">Especialidad <span style="color:red;">*</span></label>
+          <select id="especialidad" name="especialidad">
+            <option value="">— Seleccione —</option>
+            {% for esp in ['Medicina General','Odontología','Cardiología','Pediatría','Ortopedia','Ginecología','Dermatología','Neurología','Oftalmología','Psiquiatría','Otra'] %}
+            <option value="{{ esp }}">{{ esp }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="tipo_cita">Tipo de cita (agenda)</label>
+          <select id="tipo_cita" name="tipo_cita">
+            <option value="General">General</option>
+            <option value="Odontología">Odontología</option>
+            <option value="Especialista">Especialista</option>
+          </select>
+          <small style="color:#999;display:block;margin-top:.25rem;">Debe coincidir con el tipo de cita que reservan los pacientes para verlo en su agenda.</small>
+        </div>
       </div>
 
       <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
@@ -37,4 +66,20 @@
     </form>
   </div>
 </div>
+
+<script>
+(function(){
+  var rol = document.getElementById('rol_id');
+  var bloque = document.getElementById('bloque-medico');
+  var mid = {{ medico_rol_id if medico_rol_id is not none else 'null' }};
+  function sync(){
+    if (!mid) { bloque.style.display = 'none'; return; }
+    bloque.style.display = (parseInt(rol.value, 10) === mid) ? 'block' : 'none';
+    document.getElementById('medico_nombre').required = (parseInt(rol.value, 10) === mid);
+    document.getElementById('especialidad').required = (parseInt(rol.value, 10) === mid);
+  }
+  rol.addEventListener('change', sync);
+  sync();
+})();
+</script>
 {% endblock %}

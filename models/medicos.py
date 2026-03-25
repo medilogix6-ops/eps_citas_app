@@ -12,6 +12,23 @@ def listar_medicos():
         conn.close()
 
 
+def obtener_medico_por_id(medico_id):
+    conn = get_connection()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            SELECT id, nombre, especialidad, tipo_cita, direccion
+            FROM medicos WHERE id = %s
+            """,
+            (medico_id,),
+        )
+        return cur.fetchone()
+    finally:
+        cur.close()
+        conn.close()
+
+
 def agregar_medico(nombre, especialidad, direccion=''):
     conn = get_connection()
     cur  = conn.cursor()

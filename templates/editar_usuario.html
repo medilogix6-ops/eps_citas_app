@@ -7,6 +7,13 @@
 
 {% block content %}
 <div class="card" style="max-width: 560px; margin: 0 auto;">
+  {% if user.rol == 'Medico' and user.medico_nombre %}
+  <div style="background:var(--gray-light);padding:1rem;border-radius:8px;margin-bottom:1.25rem;font-size:.9rem;">
+    <strong>Perfil médico:</strong> {{ user.medico_nombre }} — {{ user.medico_especialidad or '' }}<br/>
+    <span style="color:var(--gray);">Hospital: {{ user.medico_direccion or hospital_default }}</span>
+  </div>
+  {% endif %}
+
   <form method="POST">
     <div class="form-group">
       <label for="username">Usuario</label>
@@ -21,8 +28,9 @@
     <div class="form-group">
       <label for="rol_id">Rol</label>
       <select id="rol_id" name="rol_id" class="form-control" required>
-        <option value="1" {{ 'selected' if user.rol_id == 1 else '' }}>Administrador</option>
-        <option value="2" {{ 'selected' if user.rol_id == 2 else '' }}>Paciente</option>
+        {% for r in roles %}
+        <option value="{{ r.id }}" {% if user.rol_id == r.id %}selected{% endif %}>{{ r.nombre }}</option>
+        {% endfor %}
       </select>
     </div>
 

@@ -35,7 +35,7 @@
         <div class="form-group">
           <label>Estado</label>
           <select name="estado">
-            {% for st in ['Pendiente','Confirmada','Cancelada'] %}
+            {% for st in ['Pendiente','Confirmada','Cancelada','Atendida'] %}
               <option value="{{ st }}" {{ 'selected' if cita.estado == st }}>{{ st }}</option>
             {% endfor %}
           </select>

@@ -216,10 +216,187 @@ def estadisticas():
                 COUNT(*)                                         AS total,
                 SUM(estado = 'Pendiente')                        AS pendientes,
                 SUM(estado = 'Confirmada')                       AS confirmadas,
-                SUM(estado = 'Cancelada')                        AS canceladas
+                SUM(estado = 'Cancelada')                        AS canceladas,
+                SUM(estado = 'Atendida')                         AS atendidas
             FROM citas
         """)
         return cur.fetchone()
+    finally:
+        cur.close()
+        conn.close()
+
+
+def obtener_citas_por_medico(medico_id):
+    """Citas asignadas a un médico (visibilidad por medico_id en citas)."""
+    conn = get_connection()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            SELECT
+                c.id AS cita_id,
+                c.documento,
+                c.tipo_cita,
+                c.fecha,
+                c.hora,
+                c.direccion_eps,
+                c.estado,
+                p.nombre AS pac_nombre,
+                p.apellido AS pac_apellido,
+                p.telefono,
+                p.correo AS pac_correo,
+                p.eps
+            FROM citas c
+            INNER JOIN pacientes p ON c.documento = p.documento
+            WHERE c.medico_id = %s
+            ORDER BY c.fecha DESC, c.hora DESC
+            """,
+            (medico_id,),
+        )
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
+def obtener_cita_por_id_para_medico(cita_id, medico_id):
+    """
+    Una cita solo si pertenece al médico.
+    """
+    conn = get_connection()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            SELECT
+                c.*,
+                p.nombre AS pac_nombre,
+                p.apellido AS pac_apellido,
+                p.telefono,
+                p.correo AS pac_correo,
+                p.eps,
+                p.documento AS pac_documento,
+                m.nombre AS medico_nombre, m.especialidad
+            FROM citas c
+            INNER JOIN pacientes p ON c.documento = p.documento
+            INNER JOIN medicos m ON c.medico_id = m.id
+            WHERE c.id = %s AND c.medico_id = %s
+            """,
+            (cita_id, medico_id),
+        )
+        return cur.fetchone()
+    finally:
+        cur.close()
+        conn.close()
+
+
+def obtener_citas_paciente_para_medico(documento, medico_id):
+    """
+    Historial de citas del paciente con este médico (para el perfil médico).
+    """
+    conn = get_connection()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            SELECT
+                c.id AS cita_id,
+                c.tipo_cita,
+                c.fecha,
+                c.hora,
+                c.estado,
+                c.direccion_eps
+            FROM citas c
+            WHERE c.documento = %s AND c.medico_id = %s
+            ORDER BY c.fecha DESC, c.hora DESC
+            """,
+            (documento, medico_id),
+        )
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
+def obtener_historial_clinico_paciente_medico(documento, medico_id):
+    conn = get_connection()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            SELECT h.id, h.notas, h.tipo, h.created_at,
+                   c.fecha AS cita_fecha, c.id AS cita_id
+            FROM historia_clinica h
+            INNER JOIN citas c ON h.cita_id = c.id
+            WHERE h.documento = %s AND h.medico_id = %s
+            ORDER BY h.created_at DESC
+            """,
+            (documento, medico_id),
+        )
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
+def obtener_pacientes_atendidos_por_medico(medico_id):
+    """Pacientes con al menos una cita en estado Atendida con ese médico."""
+    conn = get_connection()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            SELECT DISTINCT p.documento, p.nombre, p.apellido, p.telefono, p.correo, p.eps
+            FROM citas c
+            INNER JOIN pacientes p ON c.documento = p.documento
+            WHERE c.medico_id = %s AND c.estado = 'Atendida'
+            ORDER BY p.apellido, p.nombre
+            """,
+            (medico_id,),
+        )
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
+def registrar_atencion_medica(cita_id, medico_id, documento, notas, tipo='Control'):
+    """
+    Marca la cita como Atendida e inserta registro en historia_clinica.
+    """
+    conn = get_connection()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            SELECT id, estado FROM citas WHERE id = %s AND medico_id = %s AND documento = %s
+            """,
+            (cita_id, medico_id, documento),
+        )
+        row = cur.fetchone()
+        if not row:
+            return False, "Cita no encontrada o no corresponde a este médico."
+        if row["estado"] == "Cancelada":
+            return False, "No se puede atender una cita cancelada."
+        if row["estado"] == "Atendida":
+            return False, "Esta cita ya fue registrada como atendida."
+
+        cur.execute(
+            "UPDATE citas SET estado = 'Atendida' WHERE id = %s",
+            (cita_id,),
+        )
+        cur.execute(
+            """
+            INSERT INTO historia_clinica (cita_id, medico_id, documento, notas, tipo)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (cita_id, medico_id, documento, notas, tipo),
+        )
+        conn.commit()
+        return True, "Atención registrada correctamente."
+    except Exception as e:
+        conn.rollback()
+        return False, str(e)
     finally:
         cur.close()
         conn.close()

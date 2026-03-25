@@ -65,6 +65,10 @@
         <div style="font-size: 1.5rem; font-weight: 700; color: #f44336;" id="stat-cancelada">0</div>
         <div style="font-size: 0.85rem; color: var(--gray);">Canceladas</div>
       </div>
+      <div style="text-align: center;">
+        <div style="font-size: 1.5rem; font-weight: 700; color: #6366f1;" id="stat-atendida">0</div>
+        <div style="font-size: 0.85rem; color: var(--gray);">Atendidas</div>
+      </div>
     </div>
   </div>
 
@@ -74,7 +78,6 @@
     <div style="display:flex;flex-direction:column;gap:.75rem;">
       <a href="{{ url_for('lista_usuarios') }}" class="btn btn-navy" style="justify-content:center; font-size: 0.9rem;">👤 Géstionar Usuarios</a>
       <a href="{{ url_for('lista_pacientes') }}" class="btn btn-primary" style="justify-content:center; font-size: 0.9rem;">🧑‍⚕️ Géstionar Pacientes</a>
-      <a href="{{ url_for('lista_medicos') }}" class="btn btn-secondary" style="justify-content:center; font-size: 0.9rem;">👨‍⚕️ Géstionar Médicos</a>
       <a href="{{ url_for('todas_citas') }}" class="btn btn-warning" style="justify-content:center; font-size: 0.9rem;">🗓️ Ver Todas las Citas</a>
     </div>
   </div>
@@ -84,14 +87,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   let chart = null;
-
-  // Obtener médicos disponibles
-  fetch('{{ url_for("lista_medicos") }}')
-    .then(response => response.text())
-    .then(html => {
-      // Parsear HTML para obtener médicos (esto es un workaround simple)
-      console.log('Médicos cargados');
-    });
 
   // Función para actualizar el gráfico
   function actualizarGrafico() {
@@ -107,6 +102,8 @@
         document.getElementById('stat-pendiente').textContent = data.Pendiente || 0;
         document.getElementById('stat-confirmada').textContent = data.Confirmada || 0;
         document.getElementById('stat-cancelada').textContent = data.Cancelada || 0;
+        var elA = document.getElementById('stat-atendida');
+        if (elA) elA.textContent = data.Atendida || 0;
         
         // Destruir gráfico anterior si existe
         if (chart) {
@@ -118,19 +115,21 @@
         chart = new Chart(ctx, {
           type: 'bar',
           data: {
-            labels: ['Pendientes', 'Confirmadas', 'Canceladas'],
+            labels: ['Pendientes', 'Confirmadas', 'Canceladas', 'Atendidas'],
             datasets: [{
               label: 'Cantidad de Citas',
-              data: [data.Pendiente || 0, data.Confirmada || 0, data.Cancelada || 0],
+              data: [data.Pendiente || 0, data.Confirmada || 0, data.Cancelada || 0, data.Atendida || 0],
               backgroundColor: [
-                'rgba(255, 152, 0, 0.8)',  // Naranja para pendientes
-                'rgba(76, 175, 80, 0.8)',   // Verde para confirmadas
-                'rgba(244, 67, 54, 0.8)'    // Rojo para canceladas
+                'rgba(255, 152, 0, 0.8)',
+                'rgba(76, 175, 80, 0.8)',
+                'rgba(244, 67, 54, 0.8)',
+                'rgba(99, 102, 241, 0.8)'
               ],
               borderColor: [
                 'rgba(255, 152, 0, 1)',
                 'rgba(76, 175, 80, 1)',
-                'rgba(244, 67, 54, 1)'
+                'rgba(244, 67, 54, 1)',
+                'rgba(99, 102, 241, 1)'
               ],
               borderWidth: 1,
               borderRadius: 4

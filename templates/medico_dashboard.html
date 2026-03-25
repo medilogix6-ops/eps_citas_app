@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Panel médico{% endblock %}
+{% block page_title %}👨‍⚕️ Mis citas asignadas{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2>{{ medico.nombre if medico else 'Médico' }}</h2>
+    <p style="color:var(--gray);margin:.35rem 0 0;">
+      {{ medico.especialidad if medico else '' }} · {{ medico.direccion if medico else '' }}
+    </p>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+    <a href="{{ url_for('medico_pacientes_atendidos') }}" class="btn btn-secondary btn-sm">📋 Pacientes atendidos</a>
+  </div>
+</div>
+
+{% if citas %}
+<div class="card" style="padding:0;">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Hora</th>
+          <th>Paciente</th>
+          <th>Documento</th>
+          <th>Tipo</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in citas %}
+        <tr>
+          <td>{{ c.fecha.strftime('%d/%m/%Y') if c.fecha else '—' }}</td>
+          <td>{{ c.hora if c.hora else '—' }}</td>
+          <td><strong>{{ c.pac_nombre }} {{ c.pac_apellido }}</strong></td>
+          <td style="font-size:.85rem;">{{ c.documento }}</td>
+          <td><span class="badge badge-teal">{{ c.tipo_cita }}</span></td>
+          <td>
+            {% if c.estado == 'Atendida' %}
+              <span class="badge badge-green">Atendida</span>
+            {% elif c.estado == 'Cancelada' %}
+              <span class="badge badge-red">Cancelada</span>
+            {% elif c.estado == 'Confirmada' %}
+              <span class="badge" style="background:#10b981;color:#fff;">Confirmada</span>
+            {% else %}
+              <span class="badge badge-gold">Pendiente</span>
+            {% endif %}
+          </td>
+          <td class="actions" style="white-space:nowrap;">
+            <a class="btn btn-xs btn-navy" href="{{ url_for('medico_ver_paciente', documento=c.documento) }}">Ver paciente</a>
+            {% if c.estado != 'Cancelada' and c.estado != 'Atendida' %}
+            <a class="btn btn-xs btn-primary" href="{{ url_for('medico_atender_cita', cita_id=c.cita_id) }}">Atender</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty">
+  <span class="icon">🗓️</span>
+  <p>No tiene citas asignadas en el sistema.</p>
+</div>
+{% endif %}
+{% endblock %}

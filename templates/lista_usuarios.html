@@ -37,6 +37,9 @@
           <td>
             {% if u.rol == 'Administrador' %}
               <span class="badge badge-navy">👑 {{ u.rol }}</span>
+            {% elif u.rol == 'Medico' %}
+              <span class="badge badge-teal">👨‍⚕️ Médico</span>
+              {% if u.medico_especialidad %}<div style="font-size:.75rem;color:var(--gray);margin-top:.2rem;">{{ u.medico_especialidad }}</div>{% endif %}
             {% else %}
               <span class="badge badge-teal">👤 {{ u.rol }}</span>
             {% endif %}

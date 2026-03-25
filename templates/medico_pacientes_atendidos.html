@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Pacientes atendidos{% endblock %}
+{% block page_title %}📋 Pacientes que ha atendido{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('dashboard_medico') }}" class="btn btn-secondary btn-sm">← Volver</a>
+{% endblock %}
+
+{% block content %}
+{% if pacientes %}
+<div class="card" style="padding:0;">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Documento</th>
+          <th>Nombre</th>
+          <th>Teléfono</th>
+          <th>EPS</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pacientes %}
+        <tr>
+          <td>{{ p.documento }}</td>
+          <td><strong>{{ p.nombre }} {{ p.apellido }}</strong></td>
+          <td>{{ p.telefono or '—' }}</td>
+          <td>{{ p.eps or '—' }}</td>
+          <td>
+            <a class="btn btn-xs btn-navy" href="{{ url_for('medico_ver_paciente', documento=p.documento) }}">Ver detalle</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty">
+  <span class="icon">📋</span>
+  <p>Aún no tiene pacientes marcados como atendidos.</p>
+  <p style="color:var(--gray);font-size:.9rem;">Al registrar una atención, el paciente aparecerá aquí.</p>
+</div>
+{% endif %}
+{% endblock %}
