@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Editar médico{% endblock %}
+{% block page_title %}✏️ Editar perfil del médico{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('lista_medicos') }}" class="btn btn-secondary btn-sm">← Volver</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:560px;margin:0 auto;">
+  <p style="font-size:.9rem;color:var(--gray);margin-bottom:1.25rem;">
+    Hospital por defecto al crear usuarios médicos: <strong>{{ hospital_default }}</strong>. Puede ajustar la sede u hospital en el campo correspondiente.
+  </p>
+  <form method="POST">
+    <div class="form-group">
+      <label for="nombre">Nombre completo <span style="color:red;">*</span></label>
+      <input id="nombre" name="nombre" type="text" value="{{ med.nombre }}" required />
+    </div>
+    <div class="form-group">
+      <label for="especialidad">Especialidad <span style="color:red;">*</span></label>
+      {% set esp_list = ['Medicina General','Odontología','Cardiología','Pediatría','Ortopedia','Ginecología','Dermatología','Neurología','Oftalmología','Psiquiatría','Otra'] %}
+      <select id="especialidad" name="especialidad" required>
+        {% for esp in esp_list %}
+        <option value="{{ esp }}" {% if med.especialidad == esp %}selected{% endif %}>{{ esp }}</option>
+        {% endfor %}
+        {% if med.especialidad and med.especialidad not in esp_list %}
+        <option value="{{ med.especialidad }}" selected>{{ med.especialidad }}</option>
+        {% endif %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="tipo_cita">Tipo de cita (agenda)</label>
+      <select id="tipo_cita" name="tipo_cita">
+        {% for t in ['General','Odontología','Especialista'] %}
+        <option value="{{ t }}" {% if med.tipo_cita == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="direccion">Hospital / sede</label>
+      <input id="direccion" name="direccion" type="text" value="{{ med.direccion or '' }}" placeholder="{{ hospital_default }}"/>
+    </div>
+    <div class="form-group">
+      <label for="telefono">Teléfono de contacto</label>
+      <input id="telefono" name="telefono" type="text" value="{{ med.telefono or '' }}" placeholder="Ej: 300 123 4567"/>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Guardar cambios</button>
+      <a href="{{ url_for('lista_medicos') }}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

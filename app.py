@@ -20,7 +20,12 @@ from models.usuarios import (
     toggle_activo,
 )
 from models.pacientes import registrar_paciente, existe_paciente, obtener_todos, actualizar_paciente
-from models.medicos import listar_medicos, obtener_medico_por_id
+from models.medicos import (
+    listar_medicos,
+    listar_medicos_admin,
+    obtener_medico_por_id,
+    actualizar_medico,
+)
 from models.citas import (
     reservar_cita,
     obtener_citas_paciente,
@@ -417,13 +422,42 @@ def editar_paciente(documento):
     return render_template('editar_paciente.html', pac=pac)
 
 # ──────────────────────────────────────────────
-#  MÉDICOS — gestión desde Usuarios (sin pantalla dedicada)
+#  MÉDICOS (solo admin — listado y edición de perfil)
 # ──────────────────────────────────────────────
 @app.route('/medicos')
 @admin_required
-def lista_medicos_redirect():
-    flash('Los médicos se gestionan desde Usuarios: cree un usuario con rol Médico.', 'success')
-    return redirect(url_for('lista_usuarios'))
+def lista_medicos():
+    medicos = listar_medicos_admin()
+    return render_template('lista_medicos.html', medicos=medicos)
+
+
+@app.route('/medicos/editar/<int:mid>', methods=['GET', 'POST'])
+@admin_required
+def editar_medico(mid):
+    med = obtener_medico_por_id(mid)
+    if not med:
+        flash('Médico no encontrado.', 'error')
+        return redirect(url_for('lista_medicos'))
+
+    if request.method == 'POST':
+        nombre = request.form.get('nombre', '').strip()
+        especialidad = request.form.get('especialidad', '').strip()
+        tipo_cita = request.form.get('tipo_cita', 'General').strip()
+        direccion = request.form.get('direccion', '').strip()
+        telefono = request.form.get('telefono', '').strip()
+        if not nombre or not especialidad:
+            flash('Nombre y especialidad son obligatorios.', 'error')
+        elif tipo_cita not in ('General', 'Odontología', 'Especialista'):
+            flash('Tipo de cita no válido.', 'error')
+        else:
+            ok, msg = actualizar_medico(
+                mid, nombre, especialidad, tipo_cita, direccion, telefono
+            )
+            flash(msg, 'success' if ok else 'error')
+            if ok:
+                return redirect(url_for('lista_medicos'))
+
+    return render_template('editar_medico.html', med=med, hospital_default=Config.MEDICO_HOSPITAL_DEFAULT)
 
 # ──────────────────────────────────────────────
 #  CITAS
@@ -540,8 +574,9 @@ def crear_usuario():
             nombre_med = request.form.get('medico_nombre', '').strip()
             especialidad = request.form.get('especialidad', '').strip()
             tipo_cita = request.form.get('tipo_cita', 'General').strip()
-            if not nombre_med or not especialidad:
-                flash('Nombre y especialidad del médico son obligatorios.', 'error')
+            tel_med = request.form.get('medico_telefono', '').strip()
+            if not nombre_med or not especialidad or not tel_med:
+                flash('Nombre, especialidad y teléfono del médico son obligatorios.', 'error')
             elif tipo_cita not in ('General', 'Odontología', 'Especialista'):
                 flash('Tipo de cita no válido.', 'error')
             else:
@@ -553,6 +588,7 @@ def crear_usuario():
                     especialidad,
                     tipo_cita,
                     Config.MEDICO_HOSPITAL_DEFAULT,
+                    tel_med,
                 )
                 flash(msg, 'success' if ok else 'error')
                 if ok:

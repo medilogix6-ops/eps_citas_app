@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Médicos{% endblock %}
+{% block page_title %}👨‍⚕️ Médicos{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('crear_usuario') }}" class="btn btn-primary btn-sm">➕ Nuevo usuario médico</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2>Médicos registrados</h2>
+    <p>{{ medicos|length }} médico{{ 's' if medicos|length != 1 else '' }} en el sistema. Para crear un médico con usuario en la app, vaya a <strong>Usuarios</strong> → Nuevo usuario → rol Médico.</p>
+  </div>
+</div>
+
+{% if medicos %}
+<div class="card" style="padding:0;">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Especialidad</th>
+          <th>Hospital / sede</th>
+          <th>Teléfono</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in medicos %}
+        <tr>
+          <td><strong>{{ m.nombre }}</strong></td>
+          <td><span class="badge badge-teal">{{ m.especialidad }}</span></td>
+          <td>{{ m.direccion if m.direccion else '—' }}</td>
+          <td>{{ m.telefono if m.telefono else '—' }}</td>
+          <td>
+            <a href="{{ url_for('editar_medico', mid=m.id) }}" class="btn btn-navy btn-xs">✏️ Editar perfil</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty">
+  <span class="icon">👨‍⚕️</span>
+  <p>No hay médicos en la base de datos.</p>
+</div>
+{% endif %}
+{% endblock %}

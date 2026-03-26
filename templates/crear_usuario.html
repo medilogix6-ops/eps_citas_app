@@ -57,6 +57,10 @@
           </select>
           <small style="color:#999;display:block;margin-top:.25rem;">Debe coincidir con el tipo de cita que reservan los pacientes para verlo en su agenda.</small>
         </div>
+        <div class="form-group">
+          <label for="medico_telefono">Teléfono del médico <span style="color:red;">*</span></label>
+          <input type="text" id="medico_telefono" name="medico_telefono" placeholder="Ej: 300 123 4567"/>
+        </div>
       </div>
 
       <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
@@ -77,6 +81,7 @@
     bloque.style.display = (parseInt(rol.value, 10) === mid) ? 'block' : 'none';
     document.getElementById('medico_nombre').required = (parseInt(rol.value, 10) === mid);
     document.getElementById('especialidad').required = (parseInt(rol.value, 10) === mid);
+    document.getElementById('medico_telefono').required = (parseInt(rol.value, 10) === mid);
   }
   rol.addEventListener('change', sync);
   sync();

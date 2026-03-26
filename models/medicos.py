@@ -3,9 +3,32 @@ from database import get_connection
 
 def listar_medicos():
     conn = get_connection()
-    cur  = conn.cursor(dictionary=True)
+    cur = conn.cursor(dictionary=True)
     try:
-        cur.execute("SELECT id, nombre, especialidad, direccion FROM medicos ORDER BY nombre")
+        cur.execute(
+            """
+            SELECT id, nombre, especialidad, direccion, telefono
+            FROM medicos ORDER BY nombre
+            """
+        )
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
+def listar_medicos_admin():
+    """Listado para administrador (tabla de consulta)."""
+    conn = get_connection()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            SELECT m.id, m.nombre, m.especialidad, m.tipo_cita, m.direccion, m.telefono
+            FROM medicos m
+            ORDER BY m.nombre
+            """
+        )
         return cur.fetchall()
     finally:
         cur.close()
@@ -18,12 +41,33 @@ def obtener_medico_por_id(medico_id):
     try:
         cur.execute(
             """
-            SELECT id, nombre, especialidad, tipo_cita, direccion
+            SELECT id, nombre, especialidad, tipo_cita, direccion, telefono
             FROM medicos WHERE id = %s
             """,
             (medico_id,),
         )
         return cur.fetchone()
+    finally:
+        cur.close()
+        conn.close()
+
+
+def actualizar_medico(medico_id, nombre, especialidad, tipo_cita, direccion, telefono):
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            UPDATE medicos
+            SET nombre = %s, especialidad = %s, tipo_cita = %s, direccion = %s, telefono = %s
+            WHERE id = %s
+            """,
+            (nombre, especialidad, tipo_cita, direccion or None, telefono or None, medico_id),
+        )
+        conn.commit()
+        return True, "Perfil del médico actualizado."
+    except Exception as e:
+        return False, str(e)
     finally:
         cur.close()
         conn.close()

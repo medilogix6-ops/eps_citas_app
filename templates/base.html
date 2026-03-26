@@ -33,6 +33,7 @@
       <li class="section-label">Gestión</li>
       <li><a href="{{ url_for('lista_pacientes') }}" {% if 'paciente' in request.endpoint %}class="active"{% endif %}>🧑‍⚕️ Pacientes</a></li>
       <li><a href="{{ url_for('lista_usuarios') }}" {% if 'usuario' in request.endpoint %}class="active"{% endif %}>👤 Usuarios</a></li>
+      <li><a href="{{ url_for('lista_medicos') }}" {% if request.endpoint in ['lista_medicos','editar_medico'] %}class="active"{% endif %}>👨‍⚕️ Médicos</a></li>
 
       <li class="section-label">Citas Médicas</li>
       <li><a href="{{ url_for('todas_citas') }}" {% if request.endpoint=='todas_citas' %}class="active"{% endif %}>🗓️ Todas las Citas</a></li>

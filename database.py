@@ -85,6 +85,21 @@ def _migrate_legacy_schema(cur, conn):
     except Exception as e:
         print(f"migrate historia_clinica: {e}")
 
+    try:
+        cur.execute(
+            """
+            SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'medicos' AND COLUMN_NAME = 'telefono'
+            """,
+            (db,),
+        )
+        if cur.fetchone()[0] == 0:
+            cur.execute(
+                "ALTER TABLE medicos ADD COLUMN telefono VARCHAR(20) NULL AFTER direccion"
+            )
+    except Exception as e:
+        print(f"migrate medicos.telefono: {e}")
+
     conn.commit()
 
 
@@ -140,6 +155,7 @@ def init_db():
             especialidad VARCHAR(80)  NOT NULL,
             tipo_cita    ENUM('General','Odontología','Especialista') NOT NULL DEFAULT 'General',
             direccion    VARCHAR(150),
+            telefono     VARCHAR(20),
             created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
@@ -251,13 +267,13 @@ def init_db():
         )
 
         cur.executemany(
-            "INSERT INTO medicos (nombre, especialidad, tipo_cita, direccion) VALUES (%s,%s,%s,%s)",
+            "INSERT INTO medicos (nombre, especialidad, tipo_cita, direccion, telefono) VALUES (%s,%s,%s,%s,%s)",
             [
-                ('Dr. Carlos Gómez',    'Medicina General', 'General',       'Cra 7 # 32-16, Bogotá'),
-                ('Dra. Laura Martínez', 'Odontología',      'Odontología',   'Cra 9 # 45-20, Bogotá'),
-                ('Dr. Andrés Ríos',     'Cardiología',      'Especialista',  'Cra 11 # 50-10, Bogotá'),
-                ('Dra. Sofía Herrera',  'Pediatría',        'General',       'Cra 13 # 60-15, Bogotá'),
-                ('Dr. Miguel Torres',   'Ortopedia',        'Especialista',  'Cra 15 # 70-20, Bogotá'),
+                ('Dr. Carlos Gómez',    'Medicina General', 'General',       'Cra 7 # 32-16, Bogotá',          '3001110001'),
+                ('Dra. Laura Martínez', 'Odontología',      'Odontología',   'Cra 9 # 45-20, Bogotá',          '3001110002'),
+                ('Dr. Andrés Ríos',     'Cardiología',      'Especialista',  'Cra 11 # 50-10, Bogotá',         '3001110003'),
+                ('Dra. Sofía Herrera',  'Pediatría',        'General',       'Cra 13 # 60-15, Bogotá',         '3001110004'),
+                ('Dr. Miguel Torres',   'Ortopedia',        'Especialista',  'Cra 15 # 70-20, Bogotá',       '3001110005'),
             ]
         )
 

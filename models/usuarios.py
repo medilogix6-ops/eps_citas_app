@@ -72,7 +72,9 @@ def registrar_usuario(username, correo, password, rol_id=2, medico_id=None):
         conn.close()
 
 
-def crear_usuario_medico(username, correo, password, nombre_medico, especialidad, tipo_cita, direccion_hospital):
+def crear_usuario_medico(
+    username, correo, password, nombre_medico, especialidad, tipo_cita, direccion_hospital, telefono=None
+):
     """
     Crea fila en medicos y usuario con rol Medico vinculado.
     direccion_hospital suele ser IPS Clinica Meira Del Mar.
@@ -86,10 +88,10 @@ def crear_usuario_medico(username, correo, password, nombre_medico, especialidad
     try:
         cur.execute(
             """
-            INSERT INTO medicos (nombre, especialidad, tipo_cita, direccion)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO medicos (nombre, especialidad, tipo_cita, direccion, telefono)
+            VALUES (%s, %s, %s, %s, %s)
             """,
-            (nombre_medico, especialidad, tipo_cita, direccion_hospital),
+            (nombre_medico, especialidad, tipo_cita, direccion_hospital, telefono or None),
         )
         mid = cur.lastrowid
         hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
