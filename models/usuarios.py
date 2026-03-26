@@ -197,3 +197,20 @@ def toggle_activo(user_id):
     finally:
         cur.close()
         conn.close()
+
+
+def eliminar_usuario(user_id: int):
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("DELETE FROM usuarios WHERE id = %s", (user_id,))
+        if cur.rowcount == 0:
+            return False, "Usuario no encontrado."
+        conn.commit()
+        return True, "Usuario eliminado."
+    except Exception as e:
+        conn.rollback()
+        return False, str(e)
+    finally:
+        cur.close()
+        conn.close()

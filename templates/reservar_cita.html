@@ -34,10 +34,9 @@
         <!-- Paso 3: Fecha (aparece después de elegir médico) -->
         <div class="form-group full" id="containerFecha" style="display:none;">
           <label>Fecha Disponible *</label>
-          <select name="fecha" id="fecha" required>
-            <option value="">— Seleccione fecha —</option>
-          </select>
+          <div id="calendarFecha" class="calendar-container" aria-label="Calendario de disponibilidad"></div>
           <small style="color:var(--gray);font-size:.78rem;" id="infoFecha"></small>
+          <input type="hidden" name="fecha" id="fecha" value="" required />
         </div>
 
         <!-- Información de confirmación -->
@@ -65,6 +64,9 @@ async function cargarMedicos() {
     document.getElementById('containerFecha').style.display = 'none';
     document.getElementById('containerConfirm').style.display = 'none';
     document.getElementById('btnConfirmar').style.display = 'none';
+    document.getElementById('fecha').value = '';
+    const calendar = document.getElementById('calendarFecha');
+    if (calendar) calendar.innerHTML = '';
     return;
   }
 
@@ -100,38 +102,123 @@ async function cargarMedicos() {
 async function cargarFechas() {
   const medicoId = document.getElementById('medico').value;
   const tipoCita = document.getElementById('tipoCita').value;
+  const calendar = document.getElementById('calendarFecha');
+  const infoFecha = document.getElementById('infoFecha');
+  const fechaInput = document.getElementById('fecha');
   
   if (!medicoId) {
     document.getElementById('containerFecha').style.display = 'none';
     document.getElementById('containerConfirm').style.display = 'none';
     document.getElementById('btnConfirmar').style.display = 'none';
+    fechaInput.value = '';
+    if (calendar) calendar.innerHTML = '';
     return;
   }
 
   try {
     const response = await fetch(`/api/fechas-disponibles/${medicoId}`);
     const datos = await response.json();
-    
-    const selectFecha = document.getElementById('fecha');
-    selectFecha.innerHTML = '<option value="">— Seleccione fecha —</option>';
-    
-    if (datos.fechas.length === 0) {
-      selectFecha.innerHTML += '<option disabled>No hay fechas disponibles</option>';
-      document.getElementById('infoFecha').textContent = 'El médico no tiene disponibilidad en los próximos 30 días.';
-    } else {
-      datos.fechas.forEach(f => {
-        const fecha = new Date(f.fecha);
-        const opción = fecha.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        const option = document.createElement('option');
-        option.value = f.fecha;
-        option.textContent = `${opción} (${f.disponibles} ${f.disponibles === 1 ? 'lugar' : 'lugares'})`;
-        selectFecha.appendChild(option);
-      });
-      document.getElementById('infoFecha').textContent = 'Elige una fecha disponible';
+
+    // Preparar disponibilidad por fecha (YYYY-MM-DD -> disponibles)
+    const disponiblesMap = new Map();
+    (datos.fechas || []).forEach(f => disponiblesMap.set(f.fecha, f.disponibles));
+
+    // Reset selección
+    fechaInput.value = '';
+    if (calendar) calendar.innerHTML = '';
+
+    // Construir calendario de los próximos 30 días en una tabla tipo grilla
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+
+    const totalDays = 30;
+    const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+    function pad2(n) {
+      return String(n).padStart(2, '0');
     }
-    
+
+    function formatISODateLocal(d) {
+      return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    }
+
+    // JavaScript: 0=Dom..6=Sat. Convertir a índice con 0=Lun..6=Dom
+    function mondayStartIndex(d) {
+      return (d.getDay() + 6) % 7;
+    }
+
+    const startOffset = mondayStartIndex(startDate); // 0..6
+    const weeks = Math.ceil((startOffset + totalDays) / 7);
+    const totalCells = weeks * 7;
+
+    const table = document.createElement('table');
+    table.className = 'calendar-table';
+
+    const thead = document.createElement('thead');
+    const trh = document.createElement('tr');
+    dayNames.forEach(n => {
+      const th = document.createElement('th');
+      th.textContent = n;
+      trh.appendChild(th);
+    });
+    thead.appendChild(trh);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    for (let cell = 0; cell < totalCells; cell++) {
+      if (cell % 7 === 0) {
+        tbody.appendChild(document.createElement('tr'));
+      }
+      const row = tbody.lastChild;
+      const td = document.createElement('td');
+      td.className = 'day-cell';
+
+      const dayIndex = cell - startOffset;
+      if (dayIndex < 0 || dayIndex >= totalDays) {
+        td.classList.add('day-empty');
+        td.textContent = '';
+        row.appendChild(td);
+        continue;
+      }
+
+      const current = new Date(startDate);
+      current.setDate(startDate.getDate() + dayIndex);
+      const iso = formatISODateLocal(current);
+      const dayNum = current.getDate();
+
+      const disponibles = disponiblesMap.has(iso) ? disponiblesMap.get(iso) : 0;
+      if (disponibles > 0) {
+        td.classList.add('day-available');
+        td.setAttribute('data-iso', iso);
+        td.title = `${disponibles} ${disponibles === 1 ? 'lugar' : 'lugares'} disponibles`;
+        td.innerHTML = `<div class="day-num">${dayNum}</div><div class="day-sub">${disponibles}</div>`;
+        td.addEventListener('click', () => {
+          // marcar seleccionado
+          document.querySelectorAll('.day-cell.day-selected').forEach(el => el.classList.remove('day-selected'));
+          fechaInput.value = iso;
+          td.classList.add('day-selected');
+          actualizarResumen();
+        });
+      } else {
+        td.classList.add('day-unavailable');
+        td.title = 'No disponible';
+        td.innerHTML = `<div class="day-num">${dayNum}</div>`;
+      }
+      row.appendChild(td);
+    }
+
+    table.appendChild(tbody);
+    calendar.appendChild(table);
+
+    if ((datos.fechas || []).length === 0) {
+      infoFecha.textContent = 'El médico no tiene disponibilidad en los próximos 30 días.';
+    } else {
+      infoFecha.textContent = 'Días disponibles (verde) e no disponibles (rojo). Selecciona un día verde.';
+    }
+
     document.getElementById('containerFecha').style.display = 'block';
-    actualizarResumen();
+    document.getElementById('containerConfirm').style.display = 'none';
+    document.getElementById('btnConfirmar').style.display = 'none';
   } catch (error) {
     console.error('Error cargando fechas:', error);
     alert('Error al cargar las fechas disponibles');
@@ -142,8 +229,7 @@ function actualizarResumen() {
   const tipoCita = document.getElementById('tipoCita').value;
   const medicoSelect = document.getElementById('medico');
   const medicoNombre = medicoSelect.options[medicoSelect.selectedIndex].textContent;
-  const fechaSelect = document.getElementById('fecha');
-  const fecha = fechaSelect.value;
+  const fecha = document.getElementById('fecha').value;
 
   if (tipoCita && medicoNombre && fecha) {
     const fechaObj = new Date(fecha);
@@ -249,5 +335,69 @@ small {
   display: block;
   margin-top: 0.25rem;
 }
+
+.calendar-container {
+  margin-top: 0.5rem;
+}
+
+.calendar-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.calendar-table th {
+  border: 1px solid var(--gray-light);
+  padding: 0.35rem 0;
+  font-size: 0.78rem;
+  color: var(--gray);
+  font-weight: 700;
+}
+
+.calendar-table td {
+  border: 1px solid var(--gray-light);
+  padding: 0.35rem 0;
+  vertical-align: top;
+}
+
+.day-cell {
+  cursor: pointer;
+  user-select: none;
+}
+
+.day-empty {
+  border: none;
+  background: transparent;
+}
+
+.day-num {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--dark);
+  line-height: 1.1;
+}
+
+.day-sub {
+  margin-top: 0.1rem;
+  font-size: 0.72rem;
+  color: var(--gray);
+}
+
+/* Colores transparentes (no sólidos) */
+.day-available {
+  background: rgba(16, 185, 129, 0.18);
+}
+
+.day-unavailable {
+  background: rgba(239, 68, 68, 0.18);
+  cursor: not-allowed;
+}
+
+.day-selected {
+  outline: 2px solid rgba(37, 99, 235, 0.9);
+  outline-offset: -2px;
+  background: rgba(37, 99, 235, 0.08) !important;
+}
+
 </style>
 {% endblock %}

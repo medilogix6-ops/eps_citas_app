@@ -59,10 +59,9 @@
               ✏️ Editar
             </a>
             {% if u.id != session.user_id %}
-            <form method="POST" action="{{ url_for('toggle_usuario', uid=u.id) }}" style="display:inline;">
-              <button class="btn btn-xs {{ 'btn-danger' if u.activo else 'btn-secondary' }}">
-                {{ '🔒 Desactivar' if u.activo else '🔓 Activar' }}
-              </button>
+            <form method="POST" action="{{ url_for('eliminar_usuario_view', uid=u.id) }}" style="display:inline;"
+                  onsubmit="return confirm('¿Eliminar el usuario de {{ u.username }}? Esta acción no se puede deshacer.');">
+              <button type="submit" class="btn btn-danger btn-xs">🗑️ Eliminar</button>
             </form>
             {% else %}
               <span style="font-size:.78rem;color:var(--gray);">— tu cuenta —</span>

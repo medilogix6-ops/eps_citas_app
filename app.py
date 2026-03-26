@@ -18,6 +18,7 @@ from models.usuarios import (
     obtener_rol_id_por_nombre,
     actualizar_usuario,
     toggle_activo,
+    eliminar_usuario,
 )
 from models.pacientes import registrar_paciente, existe_paciente, obtener_todos, actualizar_paciente
 from models.medicos import (
@@ -670,6 +671,18 @@ def editar_usuario(uid):
 def toggle_usuario(uid):
     toggle_activo(uid)
     flash('Estado del usuario actualizado.', 'success')
+    return redirect(url_for('lista_usuarios'))
+
+
+@app.route('/usuarios/eliminar/<int:uid>', methods=['POST'])
+@admin_required
+def eliminar_usuario_view(uid):
+    if uid == session.get('user_id'):
+        flash('No puedes eliminar tu propia cuenta.', 'error')
+        return redirect(url_for('lista_usuarios'))
+
+    ok, msg = eliminar_usuario(uid)
+    flash(msg, 'success' if ok else 'error')
     return redirect(url_for('lista_usuarios'))
 
 
