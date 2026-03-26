@@ -92,14 +92,25 @@ def agregar_medico(nombre, especialidad, direccion=''):
 
 def eliminar_medico(medico_id):
     conn = get_connection()
-    cur  = conn.cursor()
+    cur = conn.cursor()
     try:
+        cur.execute("SELECT COUNT(*) FROM usuarios WHERE medico_id = %s", (medico_id,))
+        if cur.fetchone()[0] > 0:
+            return (
+                False,
+                "No se puede eliminar: hay un usuario vinculado a este médico. "
+                "Elimine o cambie el rol de ese usuario en Usuarios.",
+            )
+        cur.execute("SELECT COUNT(*) FROM citas WHERE medico_id = %s", (medico_id,))
+        if cur.fetchone()[0] > 0:
+            return False, "No se puede eliminar: el médico tiene citas registradas."
+
         cur.execute("DELETE FROM medicos WHERE id = %s", (medico_id,))
         conn.commit()
         return True, "Médico eliminado."
     except Exception as e:
         if "foreign key" in str(e).lower():
-            return False, "No se puede eliminar: el médico tiene citas asignadas."
+            return False, "No se puede eliminar: el médico tiene datos relacionados en el sistema."
         return False, str(e)
     finally:
         cur.close()

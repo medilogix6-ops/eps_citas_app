@@ -25,6 +25,7 @@ from models.medicos import (
     listar_medicos_admin,
     obtener_medico_por_id,
     actualizar_medico,
+    eliminar_medico,
 )
 from models.citas import (
     reservar_cita,
@@ -459,6 +460,15 @@ def editar_medico(mid):
 
     return render_template('editar_medico.html', med=med, hospital_default=Config.MEDICO_HOSPITAL_DEFAULT)
 
+
+@app.route('/medicos/eliminar/<int:mid>', methods=['POST'])
+@admin_required
+def eliminar_medico_view(mid):
+    ok, msg = eliminar_medico(mid)
+    flash(msg, 'success' if ok else 'error')
+    return redirect(url_for('lista_medicos'))
+
+
 # ──────────────────────────────────────────────
 #  CITAS
 # ──────────────────────────────────────────────
@@ -519,6 +529,8 @@ def actualizar(cita_id):
     medicos = listar_medicos()
     if not cita:
         flash('Cita no encontrada.', 'error')
+        if session.get('rol') == 'Administrador':
+            return redirect(url_for('todas_citas'))
         return redirect(url_for('consulta_cita'))
     if request.method == 'POST':
         ok, msg = actualizar_cita(
@@ -532,6 +544,8 @@ def actualizar(cita_id):
         )
         flash(msg, 'success' if ok else 'error')
         if ok:
+            if session.get('rol') == 'Administrador':
+                return redirect(url_for('todas_citas'))
             return redirect(url_for('consulta_cita'))
     return render_template('actualizar_cita.html', cita=cita, medicos=medicos)
 
@@ -544,6 +558,11 @@ def eliminar(cita_id):
 
     ok, msg = eliminar_cita(cita_id)
     flash(msg, 'success' if ok else 'error')
+    rol = session.get('rol')
+    if rol == 'Administrador':
+        return redirect(url_for('todas_citas'))
+    if rol == 'Paciente':
+        return redirect(url_for('perfil_paciente'))
     return redirect(url_for('consulta_cita'))
 
 # ──────────────────────────────────────────────

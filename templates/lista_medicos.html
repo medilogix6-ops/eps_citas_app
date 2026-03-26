@@ -33,8 +33,12 @@
           <td><span class="badge badge-teal">{{ m.especialidad }}</span></td>
           <td>{{ m.direccion if m.direccion else '—' }}</td>
           <td>{{ m.telefono if m.telefono else '—' }}</td>
-          <td>
-            <a href="{{ url_for('editar_medico', mid=m.id) }}" class="btn btn-navy btn-xs">✏️ Editar perfil</a>
+          <td class="actions" style="white-space:nowrap;">
+            <a href="{{ url_for('editar_medico', mid=m.id) }}" class="btn btn-navy btn-xs">✏️ Editar</a>
+            <form method="POST" action="{{ url_for('eliminar_medico_view', mid=m.id) }}" style="display:inline;"
+                  onsubmit="return confirm('¿Eliminar este médico del sistema? Esta acción no se puede deshacer.');">
+              <button type="submit" class="btn btn-danger btn-xs">🗑️ Eliminar</button>
+            </form>
           </td>
         </tr>
         {% endfor %}
