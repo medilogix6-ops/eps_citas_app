@@ -118,7 +118,9 @@ python app.py
 |---|---|---|
 | Administrador | `admin` | `Admin2025*` |
 | Paciente | `juan.perez` | `Paciente123*` |
-| Paciente | `maria.lopez` | `Paciente123*` |
+| Paciente | `jorge` | `Paciente123` |
+| Medico | `Andres` | `12345` |
+| Medico | `juan` | `12345` |
 
 ---
 
